@@ -1,0 +1,17 @@
+{
+    // Use fortls and (optionally) point to it if installed in a pyenv/venv
+  "fortran.languageServer": "fortls",
+//   "fortran.fortls.path": "/home/you/.pyenv/versions/fortran/bin/fortls",
+
+  // Tell fortls where to find .mod files and any include directories
+  "fortran.fortls.mod_dirs": ["${workspaceFolder}/code2/build"],
+  "fortran.fortls.incl_dirs": ["${workspaceFolder}/include"],
+
+  // If you use the Modern Fortran gfortran linter, give it the same include path
+  "fortran.linter.enabled": true,
+  "fortran.linter.compiler": "gfortran",
+  "fortran.linter.extraArgs": [
+    "-I", "${workspaceFolder}/code2/build",
+    "-std=f2018"
+  ]
+}
