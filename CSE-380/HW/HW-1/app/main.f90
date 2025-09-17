@@ -1,79 +1,3 @@
-module input_arrays
-    use, intrinsic :: iso_fortran_env, only: real32
-    implicit none
-    private
-    public :: InputArrays, new_input_arrays
-
-    type, public :: InputArrays
-        integer :: n, m
-        real(real32), allocatable :: x(:,:) 
-        real(real32), allocatable :: b(:)
-    end type InputArrays
-
-    contains
-        subroutine new_input_arrays(self, n, m)
-            class(InputArrays), intent(out) :: self
-            integer, intent(in) :: n, m
-
-            self%n = n
-            self%m = m
-
-            allocate(self%x(n,n))
-            self%x = 2.0_real32
-            
-            allocate(self%b(m))
-            self%b = 1.0_real32
-        end subroutine new_input_arrays
-end module input_arrays
-
-module output_array
-    use input_arrays
-    use, intrinsic :: iso_fortran_env, only: real32    
-    implicit none
-    private
-
-    public :: OutputArray
-
-    type, public :: OutputArray
-        integer :: n
-        real(real32), allocatable :: y(:,:)
-        contains
-            procedure :: compute
-    end type OutputArray
-
-    public :: new_output_array
-
-    contains
-        subroutine new_output_array(self, n)
-            class(OutputArray), intent(out) :: self
-            integer, intent(in) :: n
-
-            self%n = n
-            allocate(self%y(n,n))
-            self%y = 1.0_real32
-
-        end subroutine new_output_array
-
-        subroutine compute(self, inputs, k, row)
-            class(OutputArray), intent(inout) :: self
-            class(InputArrays), intent(in) :: inputs
-            integer, intent(in) :: k
-            logical, intent(in) :: row
-
-            ! I think this is faster than doing a loop
-            ! This should compile to a tight double loop
-            self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
-            
-            if (row) then
-                self%y(k, 1:inputs%m) = self%y(k, 1:inputs%m) + inputs%b(1:inputs%m)
-            else ! column major (Fortran)
-                self%y(1:inputs%m, k) = self%y(1:inputs%m, k) + inputs%b(1:inputs%m)
-            end if
-            
-        end subroutine compute
-
-end module output_array
-
 program name
     use, intrinsic :: iso_fortran_env, only: real32, output_unit
     use mem_util, only : nbytes, pbytes
@@ -87,10 +11,11 @@ program name
     type(OutputArray) :: output
     logical :: row
     integer :: i, j
-    character(len=256) :: nml_file, output_dir, output_size_dst, output_array_dst
+    real(real32) :: sum_first_row, sum_kth_row, sum_first_col, sum_kth_col
+    character(len=256) :: nml_file, output_dir, output_summary_dst, output_array_dst
     ! character(len=256) :: output_dir
     
-    integer :: nml_unit, output_size_unit, output_array_unit
+    integer :: nml_unit, output_summary_unit, output_array_unit
 
     integer :: nargs
 
@@ -105,7 +30,7 @@ program name
 
     row = .false.
 
-    output_size_unit = 10
+    output_summary_unit = 10
     output_array_unit = 11
 
     nargs = command_argument_count()
@@ -125,22 +50,48 @@ program name
     ! 3a I placed the class initializations here because it is after the defintion of 
     !    the n, m, and k variables but before the invokation of the computation method
     call new_input_arrays(self=inputs, n=n, m=m)                 ! 3a initilzing the input object
-    call new_output_array(self=output, n=n)                      ! 3a intilizing the output object    
+    call new_output_array(self=output, n=n)                      ! 3a intilizing the output object
     call output%compute(inputs=inputs, k=k, row=row)
+
+    
 
     if (nargs > 1) then
         call get_command_argument(2, output_dir)
         ! print *, output_dir
     end if
 
-    output_size_dst = join_path(output_dir, 'size.txt')
-    print *, "Saving", output_size_dst
+    output_summary_dst = join_path(output_dir, 'summary.txt')
+    print *, "Saving", output_summary_dst
 
-    open(newunit=output_size_unit, file=output_size_dst, status='replace', action='write')
-    write(output_size_unit, '(A, A)') 'x: ', pbytes(nbytes(inputs%x))
-    write(output_size_unit, '(A, A)') 'b: ', pbytes(nbytes(inputs%b))
-    write(output_size_unit, '(A, A)') 'y: ', pbytes(nbytes(output%y))
-    close(output_size_unit)
+    open(newunit=output_summary_unit, file=output_summary_dst, status='replace', action='write')
+    write(output_summary_unit, '(A, A)') 'x: ', pbytes(nbytes(inputs%x))
+    write(output_summary_unit, '(A, A)') 'b: ', pbytes(nbytes(inputs%b))
+    write(output_summary_unit, '(A, A)') 'y: ', pbytes(nbytes(output%y))
+    
+
+    ! Compute sums efficiently (column-major friendly)
+    ! First column sum (most efficient - contiguous memory access)
+    sum_first_col = sum(output%y(:, 1))
+
+    ! kth column sum (also efficient - contiguous memory access)
+    sum_kth_col = sum(output%y(:, k))
+
+    ! First row sum (less efficient but necessary - strided access)
+    sum_first_row = sum(output%y(1, :))
+
+    ! kth row sum (less efficient but necessary - strided access)
+    sum_kth_row = sum(output%y(k, :))
+
+    ! Output the results
+    write(output_summary_unit, '(A)') ''
+    write(output_summary_unit,'(A,F12.0)') 'Sum of first row: ', sum_first_row
+    write(output_summary_unit,'(A,F12.0)') 'Sum of kth row:   ', sum_kth_row
+    write(output_summary_unit,'(A,F12.0)') 'Sum of first col: ', sum_first_col
+    write(output_summary_unit,'(A,F12.0)') 'Sum of kth col:   ', sum_kth_col
+
+
+
+    close(output_summary_unit)
 
     ! output_array_dst = join_path(output_dir, 'array.txt')
     ! print *, "Saving", output_array_dst
@@ -149,7 +100,6 @@ program name
     ! do i = 1, output%n
     !     write(output_array_unit,'(100(f8.3,1x))') (output%y(i,j), j=1, output%n)
     ! end do
-
-    close(output_array_unit)
+    ! close(output_array_unit)
 
 end program name

@@ -27,15 +27,33 @@ class Case:
 
         f90nml.write(nml, dst)
 
-def compile():
+def compile(clean:bool=True):
     print('Compiling FORTRAN code')
-    os.makedirs('./build', exist_ok=True)
-    os.makedirs('./bin', exist_ok=True)
 
-    print('Compiling modules')
+    
+    app = 'app'
     src = 'src'
+
     build = 'build'
-    modules = ['mem.f90', 'path.f90']
+
+    bin = 'bin'
+    binary_name = 'hw1'
+    binary_path = os.path.join(bin, binary_name)
+    
+    os.makedirs(build, exist_ok=True)
+    os.makedirs(bin, exist_ok=True)
+
+    if clean:
+        print(f'Cleaning: {build} and {bin}')
+        for file in os.listdir(build):
+           if file.endswith('.mod') or file.endswith('.o'):
+               os.remove(os.path.join(build, file))
+
+        if os.path.exists(binary_path):
+            os.remove(binary_path)
+
+    print('Compiling modules')    
+    modules = ['io_arrays.f90', 'mem.f90', 'path.f90']
 
     # modules
     o_list = []
@@ -48,7 +66,7 @@ def compile():
 
     # main app
     print('Compiling main app')
-    app = 'app'
+    
 
     main_in = 'main.f90'
     main_out = main_in.replace('f90', 'o')
@@ -62,11 +80,6 @@ def compile():
     
     # binary
     print('Compiling binary')
-
-    bin = 'bin'
-    binary_name = 'hw1'
-    binary_path = os.path.join(bin, binary_name)
-
     files_str = ' '.join(o_list)
     
     print(f'    {files_str} -> {binary_path}')
@@ -87,7 +100,7 @@ def main():
         case_a,
         case_b,
         case_c,
-        case_d
+        # case_d
         ]
     for case in cases:
         dst = f"./cases/{case.name}/params.nml"
