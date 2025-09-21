@@ -118,8 +118,6 @@ def main():
         binary_path = compile()
     else:
         binary_path = './bin/hw1'
-
-    print(binary_path)
         
     # hw cases
     case_a = Case(name="a", n=100,   m=50,    k=44,    row=False, print_summary=True, print_array=False)
@@ -140,8 +138,9 @@ def main():
         case_a,
         case_b,
         case_c,
+        case_d, # this case requires a lot of ram
+
         case_q6,
-        # case_d # this case requires a lot of ram
 
         # expected fails
         fail_1,
@@ -171,9 +170,11 @@ def main():
         end = time.perf_counter() # end time
         elapsed = end - start # elapsed time for subprocess
         
-        print(result.stdout)
+        
         if result.stderr:
-            print(result.stderr)
+            print(result.stdout + result.stderr)
+        else:
+            print(result.stdout)
 
         # append the timed subprocess execution to the time.txt file
         with open(time_file, 'a') as f:
