@@ -48,13 +48,7 @@ module mem_util
             end if
         end if
 
-        if (value < 10.0_real64) then
-            write(buf, '(F5.2,1X,A3)') value, units(index)
-        else if (value < 100.0_real64) then
-            write(buf, '(F5.1,1X,A3)') value, units(index)
-        else
-            write(buf, '(F6.1,1X,A3)') value, units(index)
-        end if
+        write(buf, '(F0.1,1X,A3)') value, units(index)
         
         s = trim(adjustl(buf))
     end function pbytes

@@ -46,6 +46,32 @@ program name
         close(nml_unit)
     end if
 
+    ! Input validation
+    if (n <= 0) then ! fail 1
+        write(*, '(A,I0)') 'Error(1) n must be positive, n=', n
+        stop 1
+    end if
+
+    if (m <= 0) then ! fail 2
+        write(*, '(A,I0)') 'Error(2) m must be positive, m=', m
+        stop 1
+    end if
+
+    if (k <= 0) then ! fail 3
+        write(*, '(A,I0)') 'Error(3) k must be positive, k=', k
+        stop 1
+    end if
+
+    if (m > n) then ! fail 4
+        write(*, '(A,I0, A,I0)') 'Error(4) m must be less than n, m=', m, ' n=', n
+        stop 1
+    end if
+
+    if (k > n) then ! fail 5
+        write(*, '(A,I0, A,I0)') 'Error(5) k must be less than n, k=', k, ' n=', n
+        stop 1
+    end if
+
     ! print *, 'Running: Arrays'
     ! 3a I placed the class initializations here because it is after the defintion of 
     !    the n, m, and k variables but before the invokation of the computation method
