@@ -44,7 +44,7 @@ class Case:
 
         f90nml.write(nml, dst)
 
-def compile(clean: bool = True):
+def compile(clean: bool = True, enable_par:bool=False):
     print('Compiling FORTRAN code')
 
     gfortran_base = ['gfortran', '-O3', '-std=f2018'] # base gfortran compiling settings
@@ -84,7 +84,10 @@ def compile(clean: bool = True):
         out_path = os.path.join(build, mod.replace('f90', 'o'))
         o_list.append(out_path)
         print(f'    {in_path} -> {out_path}')
-        subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path], check=True)
+        if enable_par:
+            subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path, '-fopenmp'], check=True)
+        else:
+            subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path], check=True)
 
     # compile main app inot intermediate file
     print('Compiling main app')
@@ -96,14 +99,21 @@ def compile(clean: bool = True):
     o_list = [out_path] + o_list
 
     print(f'    {in_path} -> {out_path}')
-    subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-o', out_path], check=True)
-    
+    if enable_par:
+        subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-fopenmp', '-o', out_path], check=True)
+    else:
+        subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-o', out_path], check=True)
+
     # compile binary using intermediate files
     print('Compiling binary')
     files_str = ' '.join(o_list)
     
     print(f'    {files_str} -> {binary_path}')
-    subprocess.run(gfortran_base + o_list + ['-o', binary_path], check=True)
+    if enable_par:
+        subprocess.run(gfortran_base + o_list + ['-o', binary_path, '-fopenmp'], check=True)
+    else:
+        subprocess.run(gfortran_base + o_list + ['-o', binary_path], check=True)
+
     print('Done compiling \n')
     return binary_path
 
@@ -115,7 +125,7 @@ def main():
     
     args = p.parse_args()
     if not args.no_compile:
-        binary_path = compile()
+        binary_path = compile(enable_par=True)
     else:
         binary_path = './bin/hw1'
         
@@ -138,7 +148,7 @@ def main():
         case_a,
         case_b,
         case_c,
-        case_d, # this case requires a lot of ram
+        # case_d, # this case requires a lot of ram
 
         case_q6,
 
