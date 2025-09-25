@@ -127,8 +127,10 @@ def main():
     args = p.parse_args()
     if not args.no_compile:
         if args.enable_par:
+            print('Building with Parallel')
             binary_path = compile(enable_par=True)
         else:
+            print('Building with Single')
             binary_path = compile(enable_par=False)
     else:
         binary_path = './bin/hw1'
