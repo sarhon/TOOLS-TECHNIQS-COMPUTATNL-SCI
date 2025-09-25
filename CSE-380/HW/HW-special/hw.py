@@ -122,10 +122,14 @@ def main():
     # usage python hw.py --no-compile -> set run_compilation=False
     p = argparse.ArgumentParser()
     p.add_argument('--no-compile', action='store_true')
+    p.add_argument('--enable-par', action='store_true')
     
     args = p.parse_args()
     if not args.no_compile:
-        binary_path = compile(enable_par=True)
+        if args.enable_par:
+            binary_path = compile(enable_par=True)
+        else:
+            binary_path = compile(enable_par=False)
     else:
         binary_path = './bin/hw1'
         
@@ -149,7 +153,7 @@ def main():
         case_a,
         case_b,
         case_c,
-        # case_d, # this case requires a lot of ram
+        case_d, # this case requires a lot of ram
 
         case_q6_row,
         case_q6_col,
