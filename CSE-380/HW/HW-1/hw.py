@@ -135,7 +135,8 @@ def main():
     case_c = Case(name="c", n=25000, m=12345, k=12346, row=False, print_summary=True, print_array=False)
     case_d = Case(name="d", n=90000, m=12345, k=12346, row=False, print_summary=True, print_array=False)
 
-    case_q6 = Case(name="q6", n=5, m=3, k=2, row=True, print_summary=True, print_array=True)
+    case_q6_row = Case(name="q6_row", n=5, m=3, k=2, row=True, print_summary=True, print_array=True)
+    case_q6_col = Case(name="q6_col", n=5, m=3, k=2, row=False, print_summary=True, print_array=True)
 
     # expected fails
     fail_1 = Case(name="fail_1", n=-1,  m=10, k=10)
@@ -150,7 +151,8 @@ def main():
         case_c,
         # case_d, # this case requires a lot of ram
 
-        case_q6,
+        case_q6_row,
+        case_q6_col,
 
         # expected fails
         fail_1,

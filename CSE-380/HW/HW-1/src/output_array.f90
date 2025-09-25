@@ -34,13 +34,13 @@ module output_array
             logical, intent(in) :: row
             integer :: num_threads, i
 
-            !$omp parallel
-            !$omp single
-            num_threads = omp_get_num_threads()
-            ! call omp_set_num_threads(num_threads)
-            print *, "Number of threads: ", num_threads
-            !$omp end single
-            !$omp end parallel
+            ! !$omp parallel
+            ! !$omp single
+            ! num_threads = omp_get_num_threads()
+            ! ! call omp_set_num_threads(num_threads)
+            ! print *, "Number of threads: ", num_threads
+            ! !$omp end single
+            ! !$omp end parallel
 
             ! I think this is faster than doing a loop
             ! This should compile to a tight double loop
