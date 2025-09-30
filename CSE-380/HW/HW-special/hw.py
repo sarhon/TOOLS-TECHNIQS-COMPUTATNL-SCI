@@ -157,7 +157,7 @@ def main():
         # case_a,
         # case_b,
         case_c,
-        # case_d, # this case requires a lot of ram
+        case_d, # this case requires a lot of ram
 
         # case_q6_row,
         # case_q6_col,
