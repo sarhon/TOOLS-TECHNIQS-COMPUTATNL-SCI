@@ -23,14 +23,21 @@ module output_array
             integer(int64) :: y_bytes
 
             self%n = n
+
+            print *, "   Allocate y"
             allocate(self%y(n,n))
+            print *, "   End allocate y"
             
+            print *, "   Set y=1.0"
             !$omp parallel workshare
             self%y = 1.0_real32
             !$omp end parallel workshare
-            
-            self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64
+            print *, "   End set"
 
+            print *, "   Calculate y_bytes"
+            self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64
+            print *, "   End calculate"
+            
         end subroutine new_output_array
 
         subroutine compute(self, inputs, k, row)
@@ -53,9 +60,13 @@ module output_array
 
             ! I think this is faster than doing a loop
             ! This should compile to a tight double loop
-            
+            print *, "    (y + 2.0_real32 * x) / 5.0_real32"
+            !$omp parallel workshare
             self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
-            
+            !$omp end parallel workshare
+            print *, "    End"
+
+
             if (row) then
                 !$omp parallel do
                 do i = 1, inputs%m

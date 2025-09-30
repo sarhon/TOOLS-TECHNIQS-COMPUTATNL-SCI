@@ -25,11 +25,8 @@ module input_arrays
             ! allocate(self%x(n,n), source=2.0_real32)
             print *, "   End allocate x"
 
-            
-            
             print *, "   Allocate m"
             allocate(self%b(m))
-
             ! allocate(self%b(m), source=1.0_real32)
             print *, "   End allocate m"
             
