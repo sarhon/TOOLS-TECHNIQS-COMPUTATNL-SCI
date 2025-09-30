@@ -66,7 +66,7 @@ module output_array
             ! !$omp end parallel workshare
             ! print *, "    End"
 
-            print *, "    (y + 2.0_real32 * x) / 5.0_real32"
+            print *, "    Start (y + 2.0_real32 * x) / 5.0_real32"
             !$omp parallel do collapse(2)
             do i = 1, size(self%y, 1)
                 do j = 1, size(self%y, 2)
