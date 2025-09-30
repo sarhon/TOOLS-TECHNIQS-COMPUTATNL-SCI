@@ -67,7 +67,7 @@ module output_array
             ! print *, "    End"
 
             print *, "    Start (y + 2.0_real32 * x) / 5.0_real32"
-            !$omp parallel do collapse(2)
+            !$omp parallel do
             do i = 1, size(self%y, 1)
                 do j = 1, size(self%y, 2)
                     self%y(i,j) = (self%y(i,j) + 2.0_real32 * inputs%x(i,j)) / 5.0_real32
@@ -77,22 +77,25 @@ module output_array
             print *, "    End"
 
 
-
             if (row) then
+                print *, "    Start Row"
                 !$omp parallel do
                 do i = 1, inputs%m
                     self%y(k,i) = self%y(k,i) + inputs%b(i)
                 end do
                 !$omp end parallel do
+                print *, "    End Row"
             else ! column major (Fortran)
+                print *, "    Start Column"
                 !$omp parallel do
                 do i = 1, inputs%m
                     self%y(i,k) = self%y(i,k) + inputs%b(i)
                 end do
                 !$omp end parallel do
+                print *, "    End Column"
             end if
 
-            print *, "ending compute"
+            print *, "Ending compute"
 
             ! if (row) then
             !     !$omp parallel workshare
