@@ -46,7 +46,7 @@ module output_array
             class(InputArrays), intent(in) :: inputs
             integer, intent(in) :: k
             logical, intent(in) :: row
-            integer :: num_threads, i
+            integer :: num_threads, i, j
 
             print *, "starting compute"
 
@@ -60,11 +60,22 @@ module output_array
 
             ! I think this is faster than doing a loop
             ! This should compile to a tight double loop
+            ! print *, "    (y + 2.0_real32 * x) / 5.0_real32"
+            ! !$omp parallel workshare
+            ! self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
+            ! !$omp end parallel workshare
+            ! print *, "    End"
+
             print *, "    (y + 2.0_real32 * x) / 5.0_real32"
-            !$omp parallel workshare
-            self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
-            !$omp end parallel workshare
+            !$omp parallel do collapse(2)
+            do i = 1, size(self%y, 1)
+                do j = 1, size(self%y, 2)
+                    self%y(i,j) = (self%y(i,j) + 2.0_real32 * inputs%x(i,j)) / 5.0_real32
+                end do
+            end do
+            !$omp end parallel do
             print *, "    End"
+
 
 
             if (row) then
