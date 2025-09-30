@@ -67,7 +67,7 @@ module output_array
             ! print *, "    End"
 
             print *, "    Start (y + 2.0_real32 * x) / 5.0_real32"
-            !$omp parallel do
+            !$omp parallel do collapse(2)
             do j = 1, self%n
                 do i = 1, self%n
                     self%y(i,j) = (self%y(i,j) + 2.0_real32 * inputs%x(i,j)) / 5.0_real32
