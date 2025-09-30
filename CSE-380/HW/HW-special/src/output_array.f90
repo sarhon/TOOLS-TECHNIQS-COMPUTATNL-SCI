@@ -1,6 +1,6 @@
 module output_array
     use input_arrays
-    use, intrinsic :: iso_fortran_env, only: real32
+    use, intrinsic :: iso_fortran_env, only: int64, real32
     implicit none
     private
 
@@ -9,6 +9,7 @@ module output_array
     type, public :: OutputArray
         integer :: n
         real(real32), allocatable :: y(:,:)
+        integer(int64) :: y_bytes
         contains
             procedure :: compute
     end type OutputArray
@@ -19,10 +20,16 @@ module output_array
         subroutine new_output_array(self, n)
             class(OutputArray), intent(out) :: self
             integer, intent(in) :: n
+            integer(int64) :: y_bytes
 
             self%n = n
             allocate(self%y(n,n))
+            
+            !$omp parallel workshare
             self%y = 1.0_real32
+            !$omp end parallel workshare
+            
+            self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64
 
         end subroutine new_output_array
 
@@ -34,6 +41,8 @@ module output_array
             logical, intent(in) :: row
             integer :: num_threads, i
 
+            print *, "starting compute"
+
             ! !$omp parallel
             ! !$omp single
             ! num_threads = omp_get_num_threads()
@@ -44,6 +53,7 @@ module output_array
 
             ! I think this is faster than doing a loop
             ! This should compile to a tight double loop
+            
             self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
             
             if (row) then
@@ -60,6 +70,7 @@ module output_array
                 !$omp end parallel do
             end if
 
+            print *, "ending compute"
 
             ! if (row) then
             !     !$omp parallel workshare

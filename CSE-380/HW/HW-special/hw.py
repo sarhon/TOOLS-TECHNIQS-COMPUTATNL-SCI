@@ -83,12 +83,12 @@ def compile(clean: bool = True, enable_par:bool=False):
         in_path = os.path.join(src, mod)
         out_path = os.path.join(build, mod.replace('f90', 'o'))
         o_list.append(out_path)
-        print(f'    {in_path} -> {out_path}')
+        # print(f'    {in_path} -> {out_path}')
         if enable_par:
-            subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path, '-fopenmp'], check=True)
+            r = subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path, '-fopenmp'], check=True)
         else:
-            subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path], check=True)
-
+            r = subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path], check=True)
+        print(' '.join(r.args))
     # compile main app inot intermediate file
     print('Compiling main app')
     main_in = 'main.f90'
@@ -98,21 +98,23 @@ def compile(clean: bool = True, enable_par:bool=False):
     out_path = os.path.join(build, main_out)
     o_list = [out_path] + o_list
 
-    print(f'    {in_path} -> {out_path}')
+    # print(f'    {in_path} -> {out_path}')
     if enable_par:
-        subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-fopenmp', '-o', out_path], check=True)
+        r = subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-fopenmp', '-o', out_path], check=True)
     else:
-        subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-o', out_path], check=True)
+        r = subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-o', out_path], check=True)
+    print(' '.join(r.args))
 
     # compile binary using intermediate files
     print('Compiling binary')
-    files_str = ' '.join(o_list)
+    # files_str = ' '.join(o_list)
     
-    print(f'    {files_str} -> {binary_path}')
+    # print(f'    {files_str} -> {binary_path}')
     if enable_par:
-        subprocess.run(gfortran_base + o_list + ['-o', binary_path, '-fopenmp'], check=True)
+        r = subprocess.run(gfortran_base + o_list + ['-o', binary_path, '-fopenmp'], check=True)
     else:
-        subprocess.run(gfortran_base + o_list + ['-o', binary_path], check=True)
+        r = subprocess.run(gfortran_base + o_list + ['-o', binary_path], check=True)
+    print(' '.join(r.args))
 
     print('Done compiling \n')
     return binary_path
@@ -152,20 +154,20 @@ def main():
     fail_5 = Case(name="fail_5", n=10,  m=10, k=11)
 
     cases = [
-        case_a,
-        case_b,
+        # case_a,
+        # case_b,
         case_c,
-        case_d, # this case requires a lot of ram
+        # case_d, # this case requires a lot of ram
 
-        case_q6_row,
-        case_q6_col,
-
-        # expected fails
-        fail_1,
-        fail_2,
-        fail_3,
-        fail_4,
-        fail_5,
+        # case_q6_row,
+        # case_q6_col,
+        #
+        # # expected fails
+        # fail_1,
+        # fail_2,
+        # fail_3,
+        # fail_4,
+        # fail_5,
         ]
 
     for case in cases:
@@ -184,15 +186,16 @@ def main():
         # os.system(cmd)
 
         start = time.perf_counter() # start time
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        # result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        os.system(cmd)
         end = time.perf_counter() # end time
         elapsed = end - start # elapsed time for subprocess
         
         
-        if result.stderr:
-            print(result.stdout + result.stderr)
-        else:
-            print(result.stdout)
+        # if result.stderr:
+        #     print(result.stdout + result.stderr)
+        # else:
+        #     print(result.stdout)
 
         # append the timed subprocess execution to the time.txt file
         with open(time_file, 'a') as f:

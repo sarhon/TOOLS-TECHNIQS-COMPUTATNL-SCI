@@ -1,6 +1,6 @@
 program name
     use, intrinsic :: iso_fortran_env, only: real32, output_unit
-    use mem_util, only : nbytes, pbytes
+    use mem_util, only : pbytes
     use path_util
     use input_arrays
     use output_array
@@ -36,8 +36,9 @@ program name
     output_array_unit = 11
 
     nargs = command_argument_count() ! number of arguments
-
+    
     ! gets the first argument (input nml file)
+    print *, "Starting reading nml file"
     if (nargs > 0) then
         call get_command_argument(1, nml_file)
         ! print *, nml_file
@@ -45,7 +46,9 @@ program name
         read(nml_unit, nml=params)
         close(nml_unit)
     end if
+    print *, "Ending reading nml file"
 
+    print *, "Starting validation"
     ! Input validation
     if (n <= 0) then ! fail 1
         write(*, '(A,I0)') 'Error(1) n must be positive, n=', n
@@ -71,14 +74,20 @@ program name
         write(*, '(A,I0, A,I0)') 'Error(5) k must be less than n, k=', k, ' n=', n
         stop 1
     end if
+    print *, "Ending validation"
 
     ! print *, 'Running: Arrays'
     ! 3a I placed the class initializations here because it is after the defintion of 
     !    the n, m, and k variables but before the invokation of the computation method
     
+    print *, "Starting init of inputs"
     call new_input_arrays(self=inputs, n=n, m=m)                 ! 3a initilzing the input object
+    print *, "Ending init of inputs"
+
+    print *, "Starting init of outputs"
     call new_output_array(self=output, n=n)                      ! 3a intilizing the output object
-    
+    print *, "Ending init of outputs"
+
     ! 3b The arrys are dynamically allocated on the heap at runtime 
     !    this also makes senst to allocate to the heap because if the size of some of the arrays 
     !    being 90k x 90k it would likely overflow the stack if allocated there
@@ -111,9 +120,9 @@ program name
     print *, "Saving: ", output_summary_dst
 
     open(newunit=output_summary_unit, file=output_summary_dst, status='replace', action='write')
-    write(output_summary_unit, '(A, A)') 'x: ', pbytes(nbytes(inputs%x))
-    write(output_summary_unit, '(A, A)') 'b: ', pbytes(nbytes(inputs%b))
-    write(output_summary_unit, '(A, A)') 'y: ', pbytes(nbytes(output%y))
+    write(output_summary_unit, '(A, A)') 'x: ', pbytes(inputs%x_bytes)
+    write(output_summary_unit, '(A, A)') 'b: ', pbytes(inputs%b_bytes)
+    write(output_summary_unit, '(A, A)') 'y: ', pbytes(output%y_bytes)
     write(output_summary_unit, '(A)') ''
 
     write(output_summary_unit,'(A,F12.0)') 'Sum of first row: ', sum_first_row
