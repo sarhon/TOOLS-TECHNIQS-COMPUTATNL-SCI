@@ -70,6 +70,7 @@ module output_array
             !$omp parallel do collapse(2)
             do i = 1, size(self%y, 1)
                 do j = 1, size(self%y, 2)
+                    print *, i, j
                     self%y(i,j) = (self%y(i,j) + 2.0_real32 * inputs%x(i,j)) / 5.0_real32
                 end do
             end do
