@@ -157,7 +157,7 @@ def main():
         # case_a,
         # case_b,
         case_c,
-        case_d, # this case requires a lot of ram
+        # case_d, # this case requires a lot of ram
 
         # case_q6_row,
         # case_q6_col,
@@ -180,6 +180,7 @@ def main():
         # Run with enhanced timing and append to summary.txt
         cmd = ['/usr/bin/time', '-p', '-o', time_file, '--', binary_path, params_dst, directory]
         cmd = f'/usr/bin/time -p -o {time_file} -- {binary_path} {params_dst} {directory}'
+        cmd = f"/usr/bin/time -f $'elapsed %E\\nuser %U\\nsys %S\\nCPU %P\\nvol ctxsw %w\\ninvol ctxsw %c\\nmajflt %F\\nminflt %R\\nmaxRSS %M KB' -o {time_file} -- {binary_path} {params_dst} {directory}"
         print(f"Running: {cmd}\n")
 
         # old simple way
