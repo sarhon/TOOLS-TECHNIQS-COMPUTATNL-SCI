@@ -59,22 +59,22 @@ def main():
     python_exec = sys.executable
 
     # Case 1: no mpi (-np 1), no numba
-    # exec_case(
-    #     case_name='Case 1',
-    #     case_dir=os.path.join(cwd, 'case_1'),
-    #     command=['mpirun', '-np', '1', python_exec, sim_dst],
-    #     cwd=cwd,
-    #     env_vars={'USE_NUMBA': '0'}
-    # )
-    #
-    # # Case 2a: mpi -np 4, no numba
-    # exec_case(
-    #     case_name='Case 2a',
-    #     case_dir=os.path.join(cwd, 'case_2a'),
-    #     command=['mpirun', '-np', '4', python_exec, sim_dst],
-    #     cwd=cwd,
-    #     env_vars={'USE_NUMBA': '0'}
-    # )
+    exec_case(
+        case_name='Case 1',
+        case_dir=os.path.join(cwd, 'case_1'),
+        command=['mpirun', '-np', '1', python_exec, sim_dst],
+        cwd=cwd,
+        env_vars={'USE_NUMBA': '0'}
+    )
+
+    # Case 2a: mpi -np 4, no numba
+    exec_case(
+        case_name='Case 2a',
+        case_dir=os.path.join(cwd, 'case_2a'),
+        command=['mpirun', '-np', '4', python_exec, sim_dst],
+        cwd=cwd,
+        env_vars={'USE_NUMBA': '0'}
+    )
 
     # Case 2b: mpi -np 8, no numba
     exec_case(

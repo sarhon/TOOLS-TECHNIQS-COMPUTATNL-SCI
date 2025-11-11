@@ -90,11 +90,6 @@ if USE_NUMBA:
     def compute_pairwise_accel(pos, mass, accel_local, start_idx, end_idx, G, eps2):
         """
         Numba-compiled pairwise acceleration kernel.
-
-        Key optimizations:
-        - nopython=True: Full compilation to machine code
-        - parallel=True: Automatic parallelization with OpenMP
-        - fastmath=True: Relaxed floating-point constraints for speed
         """
         N = pos.shape[0]
 
@@ -128,7 +123,7 @@ if USE_NUMBA:
             accel_local[local_i, 1] = ay
             accel_local[local_i, 2] = az
 else:
-    # NumPy-vectorized fallback (no Numba, but still optimized)
+    # NumPy-vectorized fallback
     def compute_pairwise_accel(pos, mass, accel_local, start_idx, end_idx, G, eps2):
         """
         NumPy-vectorized pairwise acceleration kernel (fallback when Numba unavailable).
@@ -480,7 +475,7 @@ if USE_NUMBA:
             radii[i] = np.sqrt(pos[i, 0]**2 + pos[i, 1]**2 + pos[i, 2]**2)
         return radii
 else:
-    # NumPy-vectorized fallback (no Numba, but still optimized)
+    # NumPy-vectorized fallback
     def compute_pairwise_energy(pos, mass, start_idx, end_idx, G, eps2):
         """
         NumPy-vectorized pairwise potential energy kernel (fallback when Numba unavailable).
@@ -880,7 +875,11 @@ if __name__ == "__main__":
 
     # Run a test simulation with modest parameters
     # N = round(64*8)  # Number of stars
-    N = round(64*8)  # Number of stars
+    # N = round(16*8)  # Number of stars
+    N = round(8*8)  # Number of stars
+    # N = round(4*8)  # Number of stars
+    # N = round(2*8)  # Number of stars
+    # N = round(1*8)  # Number of stars
     resolution = 1e-6
     dt = resolution
     n_steps = round(resolution ** -1)
