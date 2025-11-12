@@ -39,3 +39,17 @@
 
 # debug information files
 *.dwo
+/CSE-380/FinalProject/pydiscord.egg-info/
+/CSE-380/FinalProject/build/
+
+# Coverage files
+*.gcov
+*.gcda
+*.gcno
+.coverage
+.coverage.*
+coverage_html_report/
+htmlcov/
+*.cover
+.hypothesis/
+.pytest_cache/

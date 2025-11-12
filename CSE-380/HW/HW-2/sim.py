@@ -61,23 +61,46 @@ def init_cluster_with_core(N=1000, G=1.0, Mc=1000.0, Rmax=1.0, seed=42):
     """
     rng = np.random.default_rng(seed)
 
+    # Equal mass stars (define first, needed for potential calculation)
+    mass = np.full(N, Mc / N)
+
     # Positions inside sphere (uniformly distributed in 3D)
     u = rng.normal(size=(N, 3))
     u /= np.linalg.norm(u, axis=1, keepdims=True)
     R = rng.random(N) ** (1 / 3) * Rmax
     pos = u * R[:, None]
 
-    # Speeds: v(r) = sqrt(1.5*G*Mc / r)
-    r = np.maximum(np.linalg.norm(pos, axis=1), 1e-6)
-    vmag = np.sqrt(1.0 * G * Mc / r)
+    # Use virial theorem: 2K + U = 0 for equilibrium
+    # First compute initial potential energy
+    eps2 = 1e-4
 
-    # Random velocity directions (isotropic)
+    # Central potential
+    r = np.maximum(np.linalg.norm(pos, axis=1), 1e-6)
+    U_center = -np.sum(G * Mc * mass / np.sqrt(r**2 + eps2))
+
+    # Pairwise potential (approximate, full calculation is expensive)
+    U_pair = 0.0
+    for i in range(min(N, 100)):  # Sample subset for speed
+        r_ij = pos - pos[i]
+        dist = np.sqrt(np.sum(r_ij**2, axis=1) + eps2)
+        dist[i] = np.inf
+        U_pair += np.sum(-G * mass[i] * mass / dist)
+    U_pair *= N / min(N, 100)  # Scale to full system
+    U_pair *= 0.5  # Avoid double counting
+
+    U_total = U_center + U_pair
+
+    # Virial theorem: 2K = -U_total
+    K_target = -0.5 * U_total
+
+    # Random velocity directions (isotropic velocity dispersion)
     w = rng.normal(size=(N, 3))
     w /= np.linalg.norm(w, axis=1, keepdims=True)
-    vel = w * vmag[:, None]
 
-    # Equal mass stars
-    mass = np.full(N, Mc / N)
+    # Scale velocities to achieve target kinetic energy
+    # K = 0.5 * sum(m * v^2), so v_scale = sqrt(2*K_target / sum(m))
+    v_scale = np.sqrt(2 * K_target / np.sum(mass))
+    vel = w * v_scale
 
     return pos, vel, mass, Mc
 
@@ -454,7 +477,7 @@ if USE_NUMBA:
                 dz = pos[j, 2] - pos[i, 2]
 
                 dist = np.sqrt(dx * dx + dy * dy + dz * dz + eps2)
-                local_potential += G * mass[i] * mass[j] / dist
+                local_potential += -G * mass[i] * mass[j] / dist
 
             potential += local_potential
 
@@ -494,7 +517,7 @@ else:
             dist[i] = np.inf
 
             # Potential energy contribution from all other stars (vectorized)
-            potential += np.sum(G * mass[i] * mass / dist)
+            potential += np.sum(-G * mass[i] * mass / dist)
 
         return potential
 
@@ -559,7 +582,7 @@ def compute_energy(pos, vel, mass, Mc=1000.0, G=1.0, eps2=1e-4):
 
     # Central potential contribution (computed by all ranks, same result)
     r_core = np.sqrt(np.sum(pos ** 2, axis=1) + eps2)
-    potential_center = np.sum(G * Mc * mass / r_core)
+    potential_center = -np.sum(G * Mc * mass / r_core)
 
     # Total potential and energy
     potential = potential_pairwise + potential_center
@@ -886,7 +909,7 @@ if __name__ == "__main__":
     snapshot_intervals = int(max([1e-3 * n_steps, 1]))
 
     # Run the simulation (all ranks participate)
-    run = True
+    run = False
     make_animations = False
 
     if run:
