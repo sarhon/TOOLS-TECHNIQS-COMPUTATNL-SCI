@@ -1,0 +1,109 @@
+! test_avg_flux.pf
+! Test average flux calculation with exponential differencing
+
+module test_avg_flux
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use solver, only: avg_flux
+    implicit none
+
+contains
+
+    @test
+    subroutine test_avg_flux_zero_source()
+        ! Test with zero source term - should give exponential attenuation
+        real(real64) :: result
+        real(real64) :: xi, xe, phi_i, mu, Q, sigma_t
+        real(real64) :: expected
+
+        xi = 0.0_real64
+        xe = 1.0_real64
+        phi_i = 1.0_real64
+        mu = 1.0_real64
+        Q = 0.0_real64
+        sigma_t = 1.0_real64
+
+        result = avg_flux(xi, xe, phi_i, mu, Q, sigma_t)
+
+        ! With Q=0, avg_flux = phi_i * (1-exp(-tau))/tau where tau = sigma_t*dx/mu = 1
+        ! avg_flux = 1 * (1-exp(-1))/1 = 1 - exp(-1) ≈ 0.6321
+        expected = 1.0_real64 - exp(-1.0_real64)
+
+        @assertEqual(expected, result, tolerance=1.0e-10_real64)
+    end subroutine test_avg_flux_zero_source
+
+    @test
+    subroutine test_avg_flux_with_source()
+        ! Test with non-zero source term
+        real(real64) :: result
+        real(real64) :: xi, xe, phi_i, mu, Q, sigma_t
+        real(real64) :: dx, tau, expected
+
+        xi = 0.0_real64
+        xe = 2.0_real64
+        phi_i = 1.0_real64
+        mu = 0.5_real64
+        Q = 1.0_real64
+        sigma_t = 0.5_real64
+
+        result = avg_flux(xi, xe, phi_i, mu, Q, sigma_t)
+
+        ! tau = sigma_t * dx / mu = 0.5 * 2 / 0.5 = 2
+        ! avg_flux = (Q/sigma_t) + (phi_i - Q/sigma_t) * (1-exp(-tau))/tau
+        ! avg_flux = 2 + (1 - 2) * (1-exp(-2))/2
+        dx = xe - xi
+        tau = sigma_t * dx / mu
+        expected = (Q / sigma_t) + (phi_i - Q / sigma_t) * (1.0_real64 - exp(-tau)) / tau
+
+        @assertEqual(expected, result, tolerance=1.0e-10_real64)
+    end subroutine test_avg_flux_with_source
+
+    @test
+    subroutine test_avg_flux_small_tau()
+        ! Test Taylor series approximation for small tau
+        real(real64) :: result
+        real(real64) :: xi, xe, phi_i, mu, Q, sigma_t
+        real(real64) :: dx, expected
+
+        xi = 0.0_real64
+        xe = 1.0e-12_real64  ! Very small distance
+        phi_i = 1.0_real64
+        mu = 1.0_real64
+        Q = 2.0_real64
+        sigma_t = 1.0_real64
+
+        result = avg_flux(xi, xe, phi_i, mu, Q, sigma_t)
+
+        ! For small tau, should use Taylor series: phi_i + Q*dx/(2*|mu|)
+        dx = xe - xi
+        expected = phi_i + Q * dx / (2.0_real64 * abs(mu))
+
+        @assertEqual(expected, result, tolerance=1.0e-15_real64)
+    end subroutine test_avg_flux_small_tau
+
+    @test
+    subroutine test_avg_flux_negative_mu()
+        ! Test with negative direction cosine (left-going particle)
+        real(real64) :: result
+        real(real64) :: xi, xe, phi_i, mu, Q, sigma_t
+        real(real64) :: dx, tau, expected
+
+        xi = 0.0_real64
+        xe = 1.0_real64
+        phi_i = 2.0_real64
+        mu = -0.5_real64  ! Left-going
+        Q = 0.5_real64
+        sigma_t = 1.0_real64
+
+        result = avg_flux(xi, xe, phi_i, mu, Q, sigma_t)
+
+        ! tau = sigma_t * dx / mu = 1 * 1 / (-0.5) = -2
+        ! avg_flux = (Q/sigma_t) + (phi_i - Q/sigma_t) * (1-exp(-tau))/tau
+        dx = xe - xi
+        tau = sigma_t * dx / mu
+        expected = (Q / sigma_t) + (phi_i - Q / sigma_t) * (1.0_real64 - exp(-tau)) / tau
+
+        @assertEqual(expected, result, tolerance=1.0e-10_real64)
+    end subroutine test_avg_flux_negative_mu
+
+end module test_avg_flux

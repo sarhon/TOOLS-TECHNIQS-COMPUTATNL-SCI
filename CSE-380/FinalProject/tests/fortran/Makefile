@@ -1,97 +1,86 @@
-# Makefile for FDiscord unit tests
+# Simple Makefile for pFUnit tests
 
-FC = gfortran
-FFLAGS = -O2 -Wall -Wextra -fcheck=all -fbacktrace
-FFLAGS_COV = -O0 -Wall -Wextra -fcheck=all -fbacktrace --coverage -fprofile-arcs -ftest-coverage
-LDFLAGS =
-LDFLAGS_COV = --coverage
+# Compiler
+FC = gfortran-13
 
-# Source directories
-SRC_DIR = ../../fdiscord/src
-TEST_DIR = .
+# pFUnit paths - set PFUNIT_DIR environment variable to your installation
+# Example: export PFUNIT_DIR=/path/to/pFUnit/install
+ifndef PFUNIT_DIR
+    $(error PFUNIT_DIR is not set. Please set it to your pFUnit installation directory)
+endif
+
+PFUNIT_BIN = $(PFUNIT_DIR)/PFUNIT-4.14/bin
+PFUNIT_INCLUDE = $(PFUNIT_DIR)/PFUNIT-4.14/include
+PFUNIT_LIB = $(PFUNIT_DIR)/PFUNIT-4.14/lib
+
+# Compiler flags
+FFLAGS = -I$(PFUNIT_INCLUDE)
+FFLAGS += -I$(PFUNIT_DIR)/GFTL-1.16/include/v1
+FFLAGS += -I$(PFUNIT_DIR)/GFTL_SHARED-1.11/include/v1
+FFLAGS += -I$(PFUNIT_DIR)/FARGPARSE-1.10/include
+FFLAGS += -I../../fdiscord/src
+FFLAGS += -J$(BUILD_DIR)  # Output module files to build directory
+FFLAGS += -fopenmp
+
+# Libraries (use only funit for serial tests, not pfunit which requires MPI)
+# Order matters: dependents before dependencies
+LIBS = -L$(PFUNIT_LIB) -lfunit
+LIBS += -L$(PFUNIT_DIR)/FARGPARSE-1.10/lib -lfargparse
+LIBS += -L$(PFUNIT_DIR)/GFTL_SHARED-1.11/lib -lgftl-shared-v2 -lgftl-shared-v2-as-default -lgftl-shared-v1
+LIBS += -fopenmp
+
+# Build directory for compiled artifacts
 BUILD_DIR = build
 
-# Source files from main project
-SRC_FILES = $(SRC_DIR)/material.f90 \
-            $(SRC_DIR)/settings.f90 \
-            $(SRC_DIR)/flux.f90 \
-            $(SRC_DIR)/solver.f90
+# Test files
+TEST_PF = test_gauss_legendre.pf test_avg_flux.pf test_flux_solvers.pf
+TEST_F90 = $(addprefix $(BUILD_DIR)/,$(TEST_PF:.pf=.F90))
+TEST_OBJ = $(addprefix $(BUILD_DIR)/,$(TEST_PF:.pf=.o))
+DRIVER_OBJ = $(BUILD_DIR)/driver.o
+TEST_EXE = test_runner
 
-# Test file
-TEST_FILE = test_fdiscord.f90
+# Source code to test (from fdiscord)
+SRC_DIR = ../../fdiscord/src
+SOLVER_OBJ = $(addprefix $(BUILD_DIR)/,solver.o material.o flux.o settings.o)
 
-# Object files
-SRC_OBJS = $(patsubst $(SRC_DIR)/%.f90,$(BUILD_DIR)/%.o,$(SRC_FILES))
-TEST_OBJ = $(BUILD_DIR)/test_fdiscord.o
+.PHONY: all clean test
 
-# Target
-TARGET = test_fdiscord
+all: $(TEST_EXE)
 
-all: $(TARGET)
-
+# Create build directory
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Compile source modules
-$(BUILD_DIR)/material.o: $(SRC_DIR)/material.f90 | $(BUILD_DIR)
-	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) -c $< -o $@
+# Preprocess .pf to .F90 in build directory
+$(BUILD_DIR)/%.F90: %.pf | $(BUILD_DIR)
+	$(PFUNIT_BIN)/funitproc $< $@
 
-$(BUILD_DIR)/settings.o: $(SRC_DIR)/settings.f90 | $(BUILD_DIR)
-	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) -c $< -o $@
+# Compile test .F90 to .o
+$(BUILD_DIR)/%.o: $(BUILD_DIR)/%.F90
+	$(FC) $(FFLAGS) -I$(BUILD_DIR) -c $< -o $@
 
-$(BUILD_DIR)/flux.o: $(SRC_DIR)/flux.f90 | $(BUILD_DIR)
-	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) -c $< -o $@
+# Compile source files from fdiscord
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.f90 | $(BUILD_DIR)
+	$(FC) $(FFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/solver.o: $(SRC_DIR)/solver.f90 $(BUILD_DIR)/material.o $(BUILD_DIR)/settings.o $(BUILD_DIR)/flux.o | $(BUILD_DIR)
-	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) -c $< -o $@
+# Compile the pFUnit driver
+$(DRIVER_OBJ): $(TEST_F90) | $(BUILD_DIR)
+	$(FC) $(FFLAGS) -I$(BUILD_DIR) -I. -c -D_TEST_SUITES='"testSuites.inc"' $(PFUNIT_INCLUDE)/driver.F90 -o $@
 
-# Compile test file
-$(TEST_OBJ): $(TEST_FILE) $(SRC_OBJS) | $(BUILD_DIR)
-	$(FC) $(FFLAGS) -J$(BUILD_DIR) -I$(BUILD_DIR) -c $< -o $@
+# Dependencies
+$(BUILD_DIR)/solver.o: $(BUILD_DIR)/settings.o $(BUILD_DIR)/material.o $(BUILD_DIR)/flux.o
+$(BUILD_DIR)/test_gauss_legendre.o: $(BUILD_DIR)/solver.o
+$(BUILD_DIR)/test_avg_flux.o: $(BUILD_DIR)/solver.o
+$(BUILD_DIR)/test_flux_solvers.o: $(BUILD_DIR)/flux.o
 
-# Link
-$(TARGET): $(SRC_OBJS) $(TEST_OBJ)
-	$(FC) $(FFLAGS) -o $@ $(SRC_OBJS) $(TEST_OBJ) $(LDFLAGS)
-	@echo "Test executable built: $(TARGET)"
+# Link test executable
+$(TEST_EXE): $(TEST_OBJ) $(SOLVER_OBJ) $(DRIVER_OBJ)
+	$(FC) -o $@ $^ $(LIBS)
 
-run: $(TARGET)
-	./$(TARGET)
+# Run tests
+test: $(TEST_EXE)
+	./$(TEST_EXE) -x > test_results.xml
 
-# Coverage target - build with coverage instrumentation
-coverage:
-	$(MAKE) clean
-	$(MAKE) all FFLAGS="$(FFLAGS_COV)" LDFLAGS="$(LDFLAGS_COV)"
-	@echo "Coverage test build complete"
-
-# Generate coverage report (run after executing tests)
-coverage-report:
-	@echo "Generating Fortran test coverage reports..."
-	@mkdir -p coverage
-	@for f in $(SRC_DIR)/*.f90; do \
-		base=$$(basename $$f .f90); \
-		if [ -f $(BUILD_DIR)/$$base.gcda ]; then \
-			gcov -o $(BUILD_DIR) $$f > coverage/$$base.gcov.txt 2>&1; \
-			mv $$base.f90.gcov coverage/ 2>/dev/null || true; \
-		fi; \
-	done
-	@echo "Coverage reports generated in coverage/"
-	@echo ""
-	@echo "=== Coverage Summary ==="
-	@for f in coverage/*.gcov; do \
-		if [ -f "$$f" ]; then \
-			echo ""; \
-			head -n 5 "$$f" | grep -E "(File|Lines|Branches)" || true; \
-		fi; \
-	done
-
-# Clean coverage data
-coverage-clean:
-	rm -f $(BUILD_DIR)/*.gcda $(BUILD_DIR)/*.gcno
-	rm -rf coverage *.gcov
-	@echo "Coverage data cleaned"
-
+# Clean
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) *.gcov
-	@echo "Clean complete"
-
-.PHONY: all run clean coverage coverage-report coverage-clean
+	rm -rf $(BUILD_DIR) $(TEST_EXE)

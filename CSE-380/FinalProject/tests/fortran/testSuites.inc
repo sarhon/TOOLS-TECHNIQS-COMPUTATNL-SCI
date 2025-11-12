@@ -1,0 +1,4 @@
+! testSuites.inc
+ADD_TEST_SUITE(test_gauss_legendre_suite)
+ADD_TEST_SUITE(test_avg_flux_suite)
+ADD_TEST_SUITE(test_flux_solvers_suite)

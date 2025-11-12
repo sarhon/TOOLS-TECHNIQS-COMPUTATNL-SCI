@@ -1,0 +1,56 @@
+! test_gauss_legendre.pf
+! Test Gauss-Legendre quadrature implementation
+
+module test_gauss_legendre
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use solver, only: gauss_legendre
+    implicit none
+
+contains
+
+    @test
+    subroutine test_weights_sum()
+        ! Test that weights sum to 2 (length of interval [-1, 1])
+        integer(int64), parameter :: n = 4
+        real(real64) :: x(n), w(n)
+        real(real64) :: sum_w
+
+        call gauss_legendre(n, x, w)
+        sum_w = sum(w)
+
+        @assertEqual(2.0_real64, sum_w, tolerance=1.0e-10_real64)
+    end subroutine test_weights_sum
+
+    @test
+    subroutine test_points_symmetric()
+        ! Test that points are symmetric around 0
+        integer(int64), parameter :: n = 6
+        real(real64) :: x(n), w(n)
+        integer(int64) :: i
+
+        call gauss_legendre(n, x, w)
+
+        ! Check x(i) = -x(n+1-i)
+        do i = 1, n/2
+            @assertEqual(-x(i), x(n+1-i), tolerance=1.0e-10_real64)
+        end do
+    end subroutine test_points_symmetric
+
+    @test
+    subroutine test_n2_known_values()
+        ! Test n=2 against known analytical values
+        ! For n=2: x = [-1/sqrt(3), 1/sqrt(3)], w = [1, 1]
+        integer(int64), parameter :: n = 2
+        real(real64) :: x(n), w(n)
+        real(real64), parameter :: expected_x = 0.5773502691896257_real64  ! 1/sqrt(3)
+
+        call gauss_legendre(n, x, w)
+
+        @assertEqual(-expected_x, x(1), tolerance=1.0e-10_real64)
+        @assertEqual(expected_x, x(2), tolerance=1.0e-10_real64)
+        @assertEqual(1.0_real64, w(1), tolerance=1.0e-10_real64)
+        @assertEqual(1.0_real64, w(2), tolerance=1.0e-10_real64)
+    end subroutine test_n2_known_values
+
+end module test_gauss_legendre

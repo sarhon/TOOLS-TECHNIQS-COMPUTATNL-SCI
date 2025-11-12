@@ -1,0 +1,6 @@
+# Build directory containing compiled artifacts
+build/
+
+# Test executable
+test_runner
+test_results.xml

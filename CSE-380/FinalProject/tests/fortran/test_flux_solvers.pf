@@ -1,0 +1,188 @@
+! test_flux_solvers.pf
+! Test tridiagonal solvers used in flux calculations
+
+module test_flux_solvers
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use right_flux, only: RightFlux, NewRightFlux, MakeMatrix, SolveMatrix
+    use left_flux, only: LeftFlux, NewLeftFlux, MakeMatrixLeft, SolveMatrixLeft
+    implicit none
+
+contains
+
+    @test
+    subroutine test_right_flux_initialization()
+        ! Test that RightFlux initializes correctly
+        type(RightFlux) :: rf
+        real(real64) :: x(5), sigma_t(4)
+        real(real64) :: mu
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 5
+            x(i) = real(i - 1, real64) * 0.5_real64
+        end do
+        sigma_t = 1.0_real64
+        mu = 0.5_real64
+
+        call NewRightFlux(rf, x, sigma_t, mu)
+
+        ! Check that arrays are allocated
+        @assertEqual(5_int64, rf%N)
+        @assertEqual(0.5_real64, rf%dx, tolerance=1.0e-10_real64)
+        @assertEqual(0.5_real64, rf%mu, tolerance=1.0e-10_real64)
+
+        ! Check tau calculation: tau = sigma_t * dx / mu = 1.0 * 0.5 / 0.5 = 1.0
+        @assertEqual(1.0_real64, rf%tau(1), tolerance=1.0e-10_real64)
+    end subroutine test_right_flux_initialization
+
+    @test
+    subroutine test_right_flux_matrix()
+        ! Test that RightFlux matrix is built correctly
+        type(RightFlux) :: rf
+        real(real64) :: x(4), sigma_t(3)
+        real(real64) :: mu
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 4
+            x(i) = real(i - 1, real64) * 1.0_real64
+        end do
+        sigma_t = 2.0_real64
+        mu = 1.0_real64
+
+        call NewRightFlux(rf, x, sigma_t, mu)
+        call MakeMatrix(rf)
+
+        ! Check main diagonal (should be all 1s)
+        do i = 1, rf%N
+            @assertEqual(1.0_real64, rf%diag_center(i), tolerance=1.0e-10_real64)
+        end do
+
+        ! Check lower diagonal: should be -exp(-tau) where tau = sigma_t*dx/mu = 2
+        do i = 1, rf%N - 1
+            @assertEqual(-exp(-2.0_real64), rf%diag_lower(i), tolerance=1.0e-10_real64)
+        end do
+    end subroutine test_right_flux_matrix
+
+    @test
+    subroutine test_left_flux_initialization()
+        ! Test that LeftFlux initializes correctly
+        type(LeftFlux) :: lf
+        real(real64) :: x(5), sigma_t(4)
+        real(real64) :: mu
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 5
+            x(i) = real(i - 1, real64) * 0.5_real64
+        end do
+        sigma_t = 1.0_real64
+        mu = -0.5_real64  ! Negative for left-going
+
+        call NewLeftFlux(lf, x, sigma_t, mu)
+
+        ! Check that arrays are allocated
+        @assertEqual(5_int64, lf%N)
+        @assertEqual(0.5_real64, lf%dx, tolerance=1.0e-10_real64)
+        @assertEqual(-0.5_real64, lf%mu, tolerance=1.0e-10_real64)
+
+        ! Check tau calculation: tau = sigma_t * dx / mu = 1.0 * 0.5 / (-0.5) = -1.0
+        @assertEqual(-1.0_real64, lf%tau(1), tolerance=1.0e-10_real64)
+    end subroutine test_left_flux_initialization
+
+    @test
+    subroutine test_left_flux_matrix()
+        ! Test that LeftFlux matrix is built correctly
+        type(LeftFlux) :: lf
+        real(real64) :: x(4), sigma_t(3)
+        real(real64) :: mu
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 4
+            x(i) = real(i - 1, real64) * 1.0_real64
+        end do
+        sigma_t = 1.5_real64
+        mu = -0.5_real64
+
+        call NewLeftFlux(lf, x, sigma_t, mu)
+        call MakeMatrixLeft(lf)
+
+        ! Check main diagonal (should be all 1s)
+        do i = 1, lf%N
+            @assertEqual(1.0_real64, lf%diag_center(i), tolerance=1.0e-10_real64)
+        end do
+
+        ! Check upper diagonal: should be -exp(-tau) where tau = 1.5*1.0/(-0.5) = -3
+        do i = 1, lf%N - 1
+            @assertEqual(-exp(3.0_real64), lf%diag_upper(i), tolerance=1.0e-10_real64)
+        end do
+    end subroutine test_left_flux_matrix
+
+    @test
+    subroutine test_right_flux_simple_solve()
+        ! Test a simple right flux solve with known solution
+        type(RightFlux) :: rf
+        real(real64) :: x(3), sigma_t(2)
+        real(real64) :: Q_source(2), Q_scatter(2)
+        real(real64) :: phi0, mu
+        integer(int64) :: i
+
+        ! Setup simple test: uniform grid, constant properties
+        do i = 1, 3
+            x(i) = real(i - 1, real64)
+        end do
+        sigma_t = 1.0_real64
+        mu = 1.0_real64
+        phi0 = 1.0_real64
+        Q_source = 0.0_real64
+        Q_scatter = 0.0_real64
+
+        call NewRightFlux(rf, x, sigma_t, mu)
+        call MakeMatrix(rf)
+        call SolveMatrix(rf, phi0, Q_source, Q_scatter)
+
+        ! With zero source, solution should be exponential decay from boundary
+        ! phi(0) = phi0 = 1.0
+        ! phi(i) = phi(i-1) * exp(-tau) where tau = sigma_t*dx/mu = 1
+        @assertEqual(1.0_real64, rf%solved(1), tolerance=1.0e-10_real64)
+        @assertEqual(exp(-1.0_real64), rf%solved(2), tolerance=1.0e-9_real64)
+        @assertEqual(exp(-2.0_real64), rf%solved(3), tolerance=1.0e-9_real64)
+    end subroutine test_right_flux_simple_solve
+
+    @test
+    subroutine test_left_flux_simple_solve()
+        ! Test a simple left flux solve with known solution
+        type(LeftFlux) :: lf
+        real(real64) :: x(3), sigma_t(2)
+        real(real64) :: Q_source(2), Q_scatter(2)
+        real(real64) :: phiN, mu
+        integer(int64) :: i
+
+        ! Setup simple test: uniform grid, constant properties
+        do i = 1, 3
+            x(i) = real(i - 1, real64)
+        end do
+        sigma_t = 1.0_real64
+        mu = -1.0_real64  ! Left-going
+        phiN = 1.0_real64
+        Q_source = 0.0_real64
+        Q_scatter = 0.0_real64
+
+        call NewLeftFlux(lf, x, sigma_t, mu)
+        call MakeMatrixLeft(lf)
+        call SolveMatrixLeft(lf, phiN, Q_source, Q_scatter)
+
+        ! With zero source, solution should be exponential growth from right boundary
+        ! (for left-going particles in the positive x direction)
+        ! phi(N) = phiN = 1.0
+        ! tau = sigma_t*dx/mu = 1*1/(-1) = -1
+        ! upper diagonal = -exp(-tau) = -exp(1) = -e
+        ! phi(i) = phi(i+1) * exp(|tau|) = phi(i+1) * exp(1) = phi(i+1) * e
+        @assertEqual(1.0_real64, lf%solved(3), tolerance=1.0e-10_real64)
+        @assertEqual(exp(1.0_real64), lf%solved(2), tolerance=1.0e-9_real64)
+        @assertEqual(exp(2.0_real64), lf%solved(1), tolerance=1.0e-9_real64)
+    end subroutine test_left_flux_simple_solve
+
+end module test_flux_solvers

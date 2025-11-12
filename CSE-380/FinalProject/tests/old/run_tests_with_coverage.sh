@@ -55,13 +55,11 @@ echo ""
 echo -e "${BLUE}=== Python Tests with Coverage ===${NC}"
 echo ""
 
-# Run Python unit tests with coverage
-run_test "Python Unit Tests (with coverage)" \
-    "cd $SCRIPT_DIR && python -m pytest python/test_pydiscord.py -v --cov=pydiscord --cov-report=term --cov-report=html:../coverage_html_report/python"
+# Run all Python tests with coverage (uses pytest auto-discovery)
+run_test "All Python Tests (with coverage)" \
+    "cd $SCRIPT_DIR && python -m pytest -v --cov=pydiscord --cov-report=term --cov-report=html:../coverage_html_report/python"
 
-# Run integration tests with coverage
-run_test "Integration Tests (with coverage)" \
-    "cd $SCRIPT_DIR && python -m pytest test_integration.py -v --cov=pydiscord --cov-append --cov-report=term --cov-report=html:../coverage_html_report/python"
+echo ""
 
 # Generate Python coverage summary
 echo -e "${BLUE}=== Python Coverage Summary ===${NC}"
@@ -85,8 +83,16 @@ if make coverage > /dev/null 2>&1; then
     echo ""
 
     # Run Fortran tests
-    run_test "Fortran Unit Tests (with coverage)" \
-        "cd $SCRIPT_DIR/fortran && ./test_fdiscord"
+    echo -e "${YELLOW}Running: Fortran Unit Tests (with coverage)${NC}"
+    echo "----------------------------------------"
+    if ./test_fdiscord; then
+        echo -e "${GREEN}✓ PASSED: Fortran Unit Tests (with coverage)${NC}"
+        ((TESTS_PASSED++))
+    else
+        echo -e "${RED}✗ FAILED: Fortran Unit Tests (with coverage)${NC}"
+        ((TESTS_FAILED++))
+    fi
+    echo ""
 
     # Generate coverage report
     echo -e "${BLUE}=== Fortran Coverage Summary ===${NC}"

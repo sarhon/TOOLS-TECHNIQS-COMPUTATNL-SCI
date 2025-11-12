@@ -40,23 +40,28 @@ run_test() {
     echo ""
 }
 
-# 1. Run Python unit tests
-run_test "Python Unit Tests" "cd $SCRIPT_DIR && python -m pytest python/test_pydiscord.py -v"
+# 1. Run all Python tests (uses pytest auto-discovery)
+run_test "All Python Tests (pytest)" "cd $SCRIPT_DIR && python -m pytest -v"
 
 # 2. Build and run Fortran unit tests
 echo -e "${YELLOW}Building Fortran Tests...${NC}"
 cd "$SCRIPT_DIR/fortran"
 make clean > /dev/null 2>&1
 if make > /dev/null 2>&1; then
-    run_test "Fortran Unit Tests" "cd $SCRIPT_DIR/fortran && ./test_fdiscord"
+    echo -e "${YELLOW}Running: Fortran Unit Tests${NC}"
+    echo "----------------------------------------"
+    if ./test_fdiscord; then
+        echo -e "${GREEN}✓ PASSED: Fortran Unit Tests${NC}"
+        ((TESTS_PASSED++))
+    else
+        echo -e "${RED}✗ FAILED: Fortran Unit Tests${NC}"
+        ((TESTS_FAILED++))
+    fi
 else
     echo -e "${RED}✗ FAILED: Fortran tests failed to build${NC}"
     ((TESTS_FAILED++))
 fi
 echo ""
-
-# 3. Run integration tests (Python vs Fortran)
-run_test "Integration Tests (Python vs Fortran)" "cd $SCRIPT_DIR && python -m pytest test_integration.py -v"
 
 # Print summary
 echo "========================================="

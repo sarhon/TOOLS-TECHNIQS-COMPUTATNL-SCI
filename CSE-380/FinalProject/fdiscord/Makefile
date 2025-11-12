@@ -3,11 +3,9 @@
 # Places binary in bin/ folder
 
 # Compiler and flags
-FC = gfortran
+FC = gfortran-13
 FFLAGS = -O2 -Wall -Wextra -fcheck=all -fbacktrace
-FFLAGS_COV = -O0 -Wall -Wextra -fcheck=all -fbacktrace --coverage -fprofile-arcs -ftest-coverage
 LDFLAGS =
-LDFLAGS_COV = --coverage
 
 # Directories
 SRC_DIR = src
@@ -91,11 +89,6 @@ rebuild: clean all
 run: $(TARGET)
 	$(TARGET)
 
-# Install target (optional)
-install: $(TARGET)
-	@echo "Installing to /usr/local/bin (requires sudo)"
-	sudo cp $(TARGET) /usr/local/bin/
-
 # Print variables for debugging
 print:
 	@echo "FC:        $(FC)"
@@ -109,32 +102,6 @@ print:
 	@echo "APP_FILES: $(APP_FILES)"
 	@echo "ALL_OBJS:  $(ALL_OBJS)"
 
-# Coverage target - build with coverage instrumentation
-coverage:
-	$(MAKE) clean
-	$(MAKE) all FFLAGS="$(FFLAGS_COV)" LDFLAGS="$(LDFLAGS_COV)"
-	@echo "Coverage build complete"
-
-# Generate coverage report (run after executing tests)
-coverage-report:
-	@echo "Generating coverage reports..."
-	@mkdir -p coverage
-	@for f in $(SRC_DIR)/*.f90; do \
-		base=$$(basename $$f .f90); \
-		if [ -f $(BUILD_DIR)/$$base.gcda ]; then \
-			gcov -o $(BUILD_DIR) $$f > coverage/$$base.gcov.txt 2>&1; \
-		fi; \
-	done
-	@echo "Coverage reports generated in coverage/"
-	@echo "Summary:"
-	@grep -A 3 "File.*f90'" coverage/*.txt 2>/dev/null || echo "No coverage data found"
-
-# Clean coverage data
-coverage-clean:
-	rm -f $(BUILD_DIR)/*.gcda $(BUILD_DIR)/*.gcno
-	rm -rf coverage
-	@echo "Coverage data cleaned"
-
 # Help target
 help:
 	@echo "Available targets:"
@@ -142,11 +109,7 @@ help:
 	@echo "  clean            - Remove build artifacts"
 	@echo "  rebuild          - Clean and rebuild"
 	@echo "  run              - Build and run the program"
-	@echo "  install          - Install binary to /usr/local/bin"
-	@echo "  coverage         - Build with coverage instrumentation"
-	@echo "  coverage-report  - Generate coverage reports (after running tests)"
-	@echo "  coverage-clean   - Remove coverage data"
 	@echo "  print            - Print makefile variables"
 	@echo "  help             - Show this help message"
 
-.PHONY: all clean rebuild run install print help coverage coverage-report coverage-clean
+.PHONY: all clean rebuild run print help
