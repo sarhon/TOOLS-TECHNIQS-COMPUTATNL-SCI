@@ -1,0 +1,19 @@
+{
+  "materials": [
+    {
+      "name": "source",
+      "total": 1.0,
+      "scatter": 0.5,
+      "Q": 1.0,
+      "bounds": [-5.0, 5.0]
+    }
+  ],
+  "settings": {
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "phiL_type": "vac",
+    "phiR_type": "vac",
+    "num_nodes": 10,
+    "sn": 4
+  }
+}

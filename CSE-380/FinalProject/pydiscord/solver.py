@@ -1,28 +1,17 @@
 import os
 from dataclasses import dataclass
-from pprint import pprint
 from typing import Tuple, List, Union, Optional
-
-import colorsys
 
 import numpy as np
 import scipy as sp
-from matplotlib import pyplot as plt
-colors = plt.cm.tab10.colors
 
 np.set_printoptions(linewidth=250)
 
 def avg_flux(xi, xe, phi_i, mu, Q, sigma_t):
     dx = xe - xi
     tau = sigma_t * dx / mu
-    # un-simplified
-    # avg_flux = (phi_i * term * mu / sigma_t + Q/sigma_t*(dx-mu/sigma_t*term))/dx
 
-    # simplified
     avg_flux = (Q / sigma_t) + (phi_i - Q / sigma_t) * ((-1 * np.expm1(-tau)) / tau)
-
-    # old and likely in correct
-    # avg_flux = phi_i * term + (Q / sigma_t) * (1 - term)
 
     return avg_flux
 
@@ -31,17 +20,6 @@ def list_split(input_list):
     midpoint = len(input_list) // 2
     return input_list[:midpoint], input_list[midpoint:]
 
-
-def generate_colors(n, saturation=0.65, value=0.9):
-    colors = []
-    for i in range(n):
-        # Evenly spaced hue (0-1)
-        hue = i / n
-        # Convert HSV to RGB
-        r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
-        # Convert to hex string and append to the list
-        colors.append('#{:02X}{:02X}{:02X}'.format(int(r * 255), int(g * 255), int(b * 255)))
-    return colors
 
 @dataclass
 class Material:
@@ -145,7 +123,6 @@ class RightFlux(Matrix):
             offsets=offset,
         )
 
-        # pprint(self.matrix.todense())
 
     def solve_matrix(self, phi0=0.0, Q_source: np.ndarray = None, Q_scatter: np.ndarray = None):
         """
@@ -330,7 +307,6 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
                 xi=x_edges[:-1],
                 xe=x_edges[1:],
                 phi_i=lf.solved.copy()[:-1],
-                # phi_e=lf.solved[1:],
                 mu=left_ordinance,
                 Q=Q_source/2 + Q_scatter,
                 sigma_t=nodal_total,
@@ -348,7 +324,6 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
                         mu=right_ordinance,
                         make=True,
                     )
-            # print(Q)
 
             if isinstance(settings.phiL, str):
                 if settings.phiL.startswith('ref'):
@@ -361,13 +336,11 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
                 phi0 = settings.phiL
 
             rf.solve_matrix(phi0=phi0, Q_source=Q_source, Q_scatter=Q_scatter)  # starts at left
-            # print('rf.solved', rf.solved)
 
             angular_flux[position_index, :] = rf.solved.copy()
             weights[position_index] = right_weight
             angles[position_index] = right_ordinance
             right_flux += rf.solved.copy() * right_weight
-            # print('right_flux', right_flux)
             right_avg_flux += avg_flux(
                 xi=x_edges[:-1],
                 xe=x_edges[1:],
@@ -376,7 +349,6 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
                 Q=Q_source/2 + Q_scatter,
                 sigma_t=nodal_total,
             ) * right_weight
-            # print('right_avg_flux', right_avg_flux)
 
             position_index += 1
 
@@ -410,8 +382,6 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
 
     current = np.dot(w * mu, angular_flux)
 
-    # print(current)
-
     # returns a tuple:
     #   x_edges: edge positions
     #   total_flux: edge-wise scalar flux
@@ -421,375 +391,3 @@ def solve_flux(materials: List[Material], settings: Settings) -> Tuple[np.ndarra
     #   w: quadrature weights
     #   x_center: cell center positions
     return x_edges, total_flux, current, angular_flux, mu, w, x_center
-    # , angular_flux, current
-
-    # x_edges
-    # total_flux
-    # nodal_flux = 0.5 * (total_flux[:-1] + total_flux[1:])
-    # rr_abs = nodal_flux * nodal_abs
-    # rr_total = nodal_flux * nodal_total
-    #
-    # print(f'Current(x=0)={current[0]:E}')
-    # print(f'Current(x=N)={current[-1]:E}')
-    #
-    # results = {
-    #     'x_edges': x_edges,
-    #     'x_center': x_center,
-    #     'total_flux': total_flux,
-    #     'current': current,
-    #     'nodal_flux': nodal_flux,
-    #     'rr_abs': rr_abs,
-    #     'rr_total': rr_total,
-    # }
-
-    # fig, ax = plt.subplots()
-    # palette = generate_colors(len(angular_flux))
-    #
-    # for idx in range(0, len(angular_flux)):
-    #     angle = angles[idx]
-    #     af = angular_flux[idx]
-    #     color = palette[idx]
-    #     ax.plot(x_edges, af,
-    #             '.-', label=r'$\mu$='+f'{angle:.2F}',
-    #             color=color)
-    #
-    # ax.plot(x_edges, total_flux, '.-', color='black', label='Total Flux')
-    #
-    #
-    # for idx, material in enumerate(materials):
-    #     xmin, xmax = material.bounds
-    #     color = colors[idx % len(colors)]
-    #     ax.axvspan(xmin, xmax, color=color, alpha=0.3, label=material.name)
-    #
-    # if len(angular_flux) <= 8:
-    #     ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
-    #
-    # # plt.ylim([0, 1.5])
-    # plt.xlabel(r'Position $[cm]$')
-    # plt.ylabel(r'Fluence $[\frac{n}{cm^2}]$')
-    # plt.grid()
-    # plt.tight_layout()
-    # plt.savefig(settings.dst + f'/flux.png', dpi=600)
-    # plt.close()
-    #
-    # fig, ax = plt.subplots()
-    # max_value = -1
-    # for idx in range(0, len(angular_flux)):
-    #     angle = angles[idx]
-    #     af = angular_flux[idx]
-    #     color = palette[idx]
-    #     ax.scatter(angle, np.linalg.norm(af),
-    #                label=r'$\mu$=' + f'{angle:.2F}',
-    #                color=color)
-    #     max_value = max(max_value, np.linalg.norm(af))
-    #
-    # assert max_value > 0.0
-    # if len(angular_flux) <= 16:
-    #     ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
-    #
-    # plt.ylabel(r'$||{\Phi_k}||$')
-    # plt.xlabel(r'$\mu$')
-    # plt.ylim([0.0, max_value*1.1])
-    # plt.grid()
-    # plt.tight_layout()
-    # plt.savefig(settings.dst + f'/mu.png', dpi=600)
-    # plt.close()
-    #
-    # # current = -1.0 * nodal_D * dflux_dx
-    #
-    #
-    #
-    #
-    #
-    #
-    # fig, ax = plt.subplots()
-    # ax.plot(x_edges, current, '.-', label='Current')
-    # plt.xlabel('x $[cm]$')
-    # plt.ylabel(r'Current $[\frac{n}{cm^2 s}]$')
-    #
-    # for idx, material in enumerate(materials):
-    #     xmin, xmax = material.bounds
-    #     color = colors[idx % len(colors)]
-    #     ax.axvspan(xmin, xmax, color=color, alpha=0.3, label=material.name)
-    #
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig(settings.dst + f'/current.png', dpi=600)
-    # plt.close()
-    #
-    #
-    #
-    # fig, ax = plt.subplots()
-    # ax.plot(x_center, rr_abs, '.-', label='Reaction Rate')
-    # plt.xlabel('x $[cm]$')
-    # plt.ylabel(r'Absorption Rate $[\frac{abs}{cm^2 s}]$')
-    #
-    # for idx, material in enumerate(materials):
-    #     xmin, xmax = material.bounds
-    #     color = colors[idx % len(colors)]
-    #     ax.axvspan(xmin, xmax, color=color, alpha=0.3, label=material.name)
-    #
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig(settings.dst + f'/rr_abs.png', dpi=600)
-    # plt.close()
-    #
-    #
-    # fig, ax = plt.subplots()
-    # ax.plot(x_center, rr_total, '.-', label='Reaction Rate')
-    # plt.xlabel('x $[cm]$')
-    # plt.ylabel(r'Total Reaction Rate $[\frac{abs}{cm^2 s}]$')
-    #
-    # for idx, material in enumerate(materials):
-    #     xmin, xmax = material.bounds
-    #     color = colors[idx % len(colors)]
-    #     ax.axvspan(xmin, xmax, color=color, alpha=0.3, label=material.name)
-    #
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig(settings.dst + f'/rr_total.png', dpi=600)
-    # plt.close()
-
-
-# outdated, but is still right for a single infinite material
-# def inf_flux(material: Material):
-#     return (1/2/material.total) * (1 + material.scatter/(material.total - material.scatter + 1e-16)) * material.Q
-
-# def main():
-#
-#
-#     L = 100.0
-#     nums = int(L) + 1
-#
-#     sns = [
-#         # 2, 4, 8,
-#         # 16, 32,
-#         # 64,
-#         100
-#         ]
-#
-#
-#     materials_a = [
-#             Material(
-#                 name='absorber',
-#                 total=10.0,
-#                 scatter=2.0,
-#                 Q=0.0,
-#                 bounds=(0.0, 4.0)
-#             ),
-#             Material(
-#                 name='isotropic',
-#                 total=1.0,
-#                 scatter=0.9,
-#                 Q=1.0,
-#                 bounds=(4.0, 10.0),
-#             ),
-#             Material(
-#                 name='absorber',
-#                 total=10.0,
-#                 scatter=2.0,
-#                 Q=0.0,
-#                 bounds=(10.0, 14.0)
-#             )
-#         ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_a = Settings(
-#             name=f'{sn}',
-#             phiL=0.0,
-#             phiR=0.0,
-#             num_nodes= 100,
-#             sn = sn,
-#             dst = f'./plots/a/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_a, settings=settings_a)
-#
-#     # B)
-#
-#     materials_b = [
-#             Material(
-#                 name='absorber',
-#                 total=10.0,
-#                 scatter=2.0,
-#                 Q=0.0,
-#                 bounds=(0.0, 0.5)
-#             ),
-#             Material(
-#                 name='scatter',
-#                 total=2.0,
-#                 scatter=1.99,
-#                 Q=0.0,
-#                 bounds=(0.5, 6.5),
-#             ),
-#             Material(
-#                 name='isotropic',
-#                 total=0.1,
-#                 scatter=0.0,
-#                 Q=1.0,
-#                 bounds=(6.5, 36.5)
-#             )
-#         ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_b = Settings(
-#             name=f'{sn}',
-#             phiL=0.0,
-#             phiR='ref',
-#             num_nodes=100,
-#             sn=sn,
-#             dst=f'./plots/b/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_b, settings=settings_b)
-#
-#     materials_c = [
-#             Material(
-#                 name='isotropic',
-#                 total=0.1,
-#                 scatter=0.0,
-#                 Q=1.0,
-#                 bounds=(0.0, 3.0)
-#             ),
-#             Material(
-#                 name='air',
-#                 total=0.01,
-#                 scatter=0.006,
-#                 Q=0.0,
-#                 bounds=(3.0, 13.0)
-#             ),
-#             Material(
-#                 name='reflector',
-#                 total=      2.0,
-#                 scatter= 1.8,
-#                 Q= 0.0,
-#                 bounds=(13.0, 18.0)
-#             ),
-#             Material(
-#                 name='isotropic',
-#                 total=0.1,
-#                 scatter=0.0,
-#                 Q=1.0,
-#                 bounds=(18.0, 28.0)
-#             ),
-#             Material(
-#                 name='scatter',
-#                 total=2.0,
-#                 scatter=1.99,
-#                 Q=0.0,
-#                 bounds=(28.0, 33.0)
-#             ),
-#             Material(
-#                 name='absorber',
-#                 total=10.0,
-#                 scatter=2.0,
-#                 Q=0.0,
-#                 bounds=(33.0, 53.0)
-#             )
-#         ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_c = Settings(
-#             name=f'{sn}',
-#             phiL='ref',
-#             phiR='ref',
-#             num_nodes=100,
-#             sn=sn,
-#             dst=f'./plots/c/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_c, settings=settings_c)
-#
-#         for sn in sns:
-#             print(f'sn = {sn}')
-#             settings_b = Settings(
-#                 name=f'{sn}',
-#                 phiL=0.0,
-#                 phiR='ref',
-#                 num_nodes=100,
-#                 sn=sn,
-#                 dst=f'./plots/b/{sn}/'
-#             )
-#
-#             solve_flux(materials=materials_b, settings=settings_b)
-#
-#     materials_q1 = [
-#         Material(
-#             name='hw3-mat',
-#             total=1.0,
-#             scatter=0.9,
-#             Q=1.0,
-#             bounds=(0.0, 100.0)
-#         )
-#     ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_q1 = Settings(
-#             name=f'{sn}',
-#             phiL='ref',
-#             phiR='ref',
-#             num_nodes=100,
-#             sn=sn,
-#             dst=f'./plots/q1/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_q1, settings=settings_q1)
-#
-#     materials_q2 = [
-#         Material(
-#             name='hw3-mat',
-#             total=1.0,
-#             scatter=0.9,
-#             Q=0.0,
-#             bounds=(0.0, 100.0)
-#         )
-#     ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_q2 = Settings(
-#             name=f'{sn}',
-#             phiL=1.0,
-#             phiR='vac',
-#             num_nodes=100,
-#             sn=sn,
-#             dst=f'./plots/q2/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_q2, settings=settings_q2)
-#
-#     materials_q3 = [
-#         Material(
-#             name='hw3-mat',
-#             total=1.0,
-#             scatter=0.9,
-#             Q=1.0,
-#             bounds=(0.0, 100.0)
-#         )
-#     ]
-#
-#     for sn in sns:
-#         print(f'sn = {sn}')
-#         settings_q3 = Settings(
-#             name=f'{sn}',
-#             phiL='vac',
-#             phiR='vac',
-#             num_nodes=100,
-#             sn=sn,
-#             dst=f'./plots/q3/{sn}/'
-#         )
-#
-#         solve_flux(materials=materials_q3, settings=settings_q3)
-#
-#             # print(f'expected angular flux: {inf_flux(materials)}\n')
-#
-#     pass
-#
-#
-#
-# if __name__ == '__main__':
-#     main()
