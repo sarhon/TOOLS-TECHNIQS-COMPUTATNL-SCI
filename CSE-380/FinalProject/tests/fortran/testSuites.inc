@@ -2,3 +2,7 @@
 ADD_TEST_SUITE(test_gauss_legendre_suite)
 ADD_TEST_SUITE(test_avg_flux_suite)
 ADD_TEST_SUITE(test_flux_solvers_suite)
+ADD_TEST_SUITE(test_material_suite)
+ADD_TEST_SUITE(test_settings_suite)
+ADD_TEST_SUITE(test_solve_flux_suite)
+ADD_TEST_SUITE(test_flux_copy_suite)

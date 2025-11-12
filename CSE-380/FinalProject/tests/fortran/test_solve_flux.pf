@@ -1,0 +1,254 @@
+! test_solve_flux.pf
+! Test the main solve_flux routine from solver module
+
+module test_solve_flux
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use solver, only: solve_flux
+    use material_mod, only: Material, NewMaterial
+    use settings_mod, only: Settings, NewSettings
+    implicit none
+
+contains
+
+    @test
+    subroutine test_solve_flux_single_material_vacuum()
+        ! Test solve_flux with a single material and vacuum boundaries
+        ! This tests the core transport solver with a simple configuration
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! Create a simple material: water-like with low absorption
+        call NewMaterial(materials(1), "TestMat", 1.0_real64, 0.9_real64, &
+                        1.0_real64, 0.0_real64, 10.0_real64)
+
+        ! Setup configuration: vacuum boundaries, 10 nodes, S4 quadrature
+        call NewSettings(config, 0.0_real64, 0.0_real64, "vac", "vac", 10_int64, 4_int64)
+
+        num_materials = 1
+
+        ! Solve the transport equation
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! Verify outputs are allocated with correct sizes (num_nodes + 1)
+        @assertEqual(11_int64, int(size(x_edges), int64))
+        @assertEqual(11_int64, int(size(total_flux), int64))
+        @assertEqual(11_int64, int(size(current), int64))
+
+        ! Check that x_edges span the correct domain
+        @assertEqual(0.0_real64, x_edges(1), tolerance=1.0e-10_real64)
+        @assertEqual(10.0_real64, x_edges(11), tolerance=1.0e-10_real64)
+
+        ! With a source term and scattering, flux should be positive everywhere
+        @assertTrue(all(total_flux >= 0.0_real64))
+
+        ! Flux should be symmetric for this symmetric problem
+        @assertEqual(total_flux(1), total_flux(11), tolerance=1.0e-6_real64)
+    end subroutine test_solve_flux_single_material_vacuum
+
+    @test
+    subroutine test_solve_flux_fixed_boundaries()
+        ! Test solve_flux with fixed (non-zero) boundary conditions
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! Create a material with moderate properties
+        call NewMaterial(materials(1), "TestMat", 1.0_real64, 0.5_real64, &
+                        0.0_real64, 0.0_real64, 5.0_real64)
+
+        ! Fixed boundaries with specific values
+        call NewSettings(config, 1.0_real64, 2.0_real64, "fixed", "fixed", 20_int64, 8_int64)
+
+        num_materials = 1
+
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! Check boundary fluxes reflect the fixed values (approximately)
+        ! Note: Fixed BC sets incoming flux, not total flux, so we check it's influenced
+        @assertTrue(total_flux(1) > 0.0_real64)
+        @assertTrue(total_flux(21) > 0.0_real64)
+
+        ! Check domain span
+        @assertEqual(0.0_real64, x_edges(1), tolerance=1.0e-10_real64)
+        @assertEqual(5.0_real64, x_edges(21), tolerance=1.0e-10_real64)
+    end subroutine test_solve_flux_fixed_boundaries
+
+    @test
+    subroutine test_solve_flux_reflective_boundaries()
+        ! Test solve_flux with reflective boundary conditions
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! Material with scattering
+        call NewMaterial(materials(1), "ScatterMat", 2.0_real64, 1.5_real64, &
+                        1.0_real64, 0.0_real64, 8.0_real64)
+
+        ! Reflective boundaries should have zero net current
+        call NewSettings(config, 0.0_real64, 0.0_real64, "ref", "ref", 16_int64, 8_int64)
+
+        num_materials = 1
+
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! For reflective boundaries, current at boundaries should be near zero
+        @assertEqual(0.0_real64, current(1), tolerance=1.0e-5_real64)
+        @assertEqual(0.0_real64, current(17), tolerance=1.0e-5_real64)
+
+        ! Flux should be positive with source
+        @assertTrue(all(total_flux > 0.0_real64))
+    end subroutine test_solve_flux_reflective_boundaries
+
+    @test
+    subroutine test_solve_flux_multiple_materials()
+        ! Test solve_flux with multiple adjacent materials
+        type(Material) :: materials(2)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! Create two different materials in adjacent regions
+        ! Material 1: strong absorber in left half
+        call NewMaterial(materials(1), "Absorber", 5.0_real64, 0.1_real64, &
+                        0.5_real64, 0.0_real64, 5.0_real64)
+
+        ! Material 2: weak absorber in right half
+        call NewMaterial(materials(2), "Scatterer", 1.0_real64, 0.9_real64, &
+                        0.5_real64, 5.0_real64, 10.0_real64)
+
+        call NewSettings(config, 0.0_real64, 0.0_real64, "vac", "vac", 20_int64, 8_int64)
+
+        num_materials = 2
+
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! Verify the spatial grid covers the full domain
+        @assertEqual(0.0_real64, x_edges(1), tolerance=1.0e-10_real64)
+        @assertEqual(10.0_real64, x_edges(21), tolerance=1.0e-10_real64)
+
+        ! All fluxes should be non-negative
+        @assertTrue(all(total_flux >= 0.0_real64))
+
+        ! Flux should be continuous (no jumps) at material interface
+        ! The interface is at x=5, which corresponds to index 11 in a 20-node grid
+        @assertTrue(abs(total_flux(11) - total_flux(10)) < abs(total_flux(1) - total_flux(21)))
+    end subroutine test_solve_flux_multiple_materials
+
+    @test
+    subroutine test_solve_flux_pure_absorber()
+        ! Test with a pure absorber (no scattering)
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! Pure absorber with source
+        call NewMaterial(materials(1), "PureAbsorber", 2.0_real64, 0.0_real64, &
+                        2.0_real64, 0.0_real64, 5.0_real64)
+
+        call NewSettings(config, 0.0_real64, 0.0_real64, "vac", "vac", 10_int64, 4_int64)
+
+        num_materials = 1
+
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! With pure absorption and vacuum boundaries, flux comes only from source
+        @assertTrue(all(total_flux >= 0.0_real64))
+
+        ! Check that solution converged to reasonable values (should be bounded)
+        @assertTrue(maxval(total_flux) > 0.0_real64)
+        @assertTrue(maxval(total_flux) < 10.0_real64)
+    end subroutine test_solve_flux_pure_absorber
+
+    @test
+    subroutine test_solve_flux_optional_outputs()
+        ! Test that optional output parameters work correctly
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        real(real64), allocatable :: angular_flux(:,:)
+        real(real64), allocatable :: mu(:)
+        real(real64), allocatable :: w(:)
+        real(real64), allocatable :: x_centers(:)
+        integer(int64) :: num_materials, num_angles
+
+        call NewMaterial(materials(1), "TestMat", 1.0_real64, 0.5_real64, &
+                        1.0_real64, 0.0_real64, 5.0_real64)
+
+        call NewSettings(config, 0.0_real64, 0.0_real64, "vac", "vac", 10_int64, 4_int64)
+
+        num_materials = 1
+
+        ! Call with optional outputs
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current, &
+                       angular_flux, mu, w, x_centers)
+
+        ! Verify optional outputs are allocated
+        @assertTrue(allocated(angular_flux))
+        @assertTrue(allocated(mu))
+        @assertTrue(allocated(w))
+        @assertTrue(allocated(x_centers))
+
+        ! Check sizes (S4 quadrature has 4 angles, num_nodes=10, num_edges=11)
+        num_angles = 4_int64
+        @assertEqual(num_angles, int(size(mu), int64))
+        @assertEqual(num_angles, int(size(w), int64))
+        @assertEqual(10_int64, int(size(x_centers), int64))
+        @assertEqual(num_angles, int(size(angular_flux, 1), int64))
+        @assertEqual(11_int64, int(size(angular_flux, 2), int64))
+
+        ! Check that weights sum to 2 (for Gauss-Legendre on [-1,1])
+        @assertEqual(2.0_real64, sum(w), tolerance=1.0e-8_real64)
+
+        ! Check that quadrature points are in [-1, 1]
+        @assertTrue(all(mu >= -1.0_real64 .and. mu <= 1.0_real64))
+    end subroutine test_solve_flux_optional_outputs
+
+    @test
+    subroutine test_solve_flux_high_scattering()
+        ! Test with very high scattering (challenging for convergence)
+        type(Material) :: materials(1)
+        type(Settings) :: config
+        real(real64), allocatable :: x_edges(:)
+        real(real64), allocatable :: total_flux(:)
+        real(real64), allocatable :: current(:)
+        integer(int64) :: num_materials
+
+        ! High scattering ratio (c = 0.99)
+        call NewMaterial(materials(1), "HighScatter", 1.0_real64, 0.99_real64, &
+                        1.0_real64, 0.0_real64, 5.0_real64)
+
+        call NewSettings(config, 0.0_real64, 0.0_real64, "vac", "vac", 10_int64, 8_int64)
+
+        num_materials = 1
+
+        call solve_flux(materials, num_materials, config, x_edges, total_flux, current)
+
+        ! Even with high scattering, should converge and produce valid results
+        @assertTrue(all(total_flux >= 0.0_real64))
+        @assertTrue(maxval(total_flux) > 0.0_real64)
+
+        ! High scattering should lead to relatively flat flux profile
+        ! Source term dominates and scattering smooths the solution
+        ! Should remain bounded
+        @assertTrue(maxval(total_flux) < 100.0_real64)
+    end subroutine test_solve_flux_high_scattering
+
+end module test_solve_flux

@@ -1,0 +1,86 @@
+! test_material.pf
+! Test Material module functionality
+
+module test_material
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use material_mod, only: Material, NewMaterial
+    implicit none
+
+contains
+
+    @test
+    subroutine test_material_initialization()
+        ! Test that Material initializes correctly with basic values
+        type(Material) :: mat
+
+        call NewMaterial(mat, "TestMaterial", 1.5_real64, 0.8_real64, &
+                        2.0_real64, 0.0_real64, 5.0_real64)
+
+        ! Check all fields
+        @assertEqual("TestMaterial", mat%name)
+        @assertEqual(1.5_real64, mat%total, tolerance=1.0e-10_real64)
+        @assertEqual(0.8_real64, mat%scatter, tolerance=1.0e-10_real64)
+        @assertEqual(2.0_real64, mat%Q, tolerance=1.0e-10_real64)
+        @assertEqual(0.0_real64, mat%left_bound, tolerance=1.0e-10_real64)
+        @assertEqual(5.0_real64, mat%right_bound, tolerance=1.0e-10_real64)
+    end subroutine test_material_initialization
+
+    @test
+    subroutine test_material_absorption_calculation()
+        ! Test that absorption is calculated correctly (total - scatter)
+        type(Material) :: mat
+
+        call NewMaterial(mat, "AbsorberMat", 2.0_real64, 0.5_real64, &
+                        1.0_real64, 0.0_real64, 1.0_real64)
+
+        ! absorption should be total - scatter = 2.0 - 0.5 = 1.5
+        @assertEqual(1.5_real64, mat%absorption, tolerance=1.0e-10_real64)
+    end subroutine test_material_absorption_calculation
+
+    @test
+    subroutine test_material_pure_absorber()
+        ! Test a material with no scattering (pure absorber)
+        type(Material) :: mat
+
+        call NewMaterial(mat, "PureAbsorber", 1.0_real64, 0.0_real64, &
+                        0.0_real64, 2.0_real64, 8.0_real64)
+
+        @assertEqual(0.0_real64, mat%scatter, tolerance=1.0e-10_real64)
+        @assertEqual(1.0_real64, mat%absorption, tolerance=1.0e-10_real64)
+        @assertEqual(2.0_real64, mat%left_bound, tolerance=1.0e-10_real64)
+        @assertEqual(8.0_real64, mat%right_bound, tolerance=1.0e-10_real64)
+    end subroutine test_material_pure_absorber
+
+    @test
+    subroutine test_material_pure_scatterer()
+        ! Test a material with no absorption (pure scatterer)
+        type(Material) :: mat
+
+        call NewMaterial(mat, "PureScatterer", 3.0_real64, 3.0_real64, &
+                        5.0_real64, 1.0_real64, 4.0_real64)
+
+        @assertEqual(3.0_real64, mat%scatter, tolerance=1.0e-10_real64)
+        @assertEqual(0.0_real64, mat%absorption, tolerance=1.0e-10_real64)
+    end subroutine test_material_pure_scatterer
+
+    @test
+    subroutine test_material_multiple_instances()
+        ! Test that multiple material instances maintain independence
+        type(Material) :: mat1, mat2
+
+        call NewMaterial(mat1, "Water", 1.0_real64, 0.9_real64, &
+                        5.0_real64, 0.0_real64, 1.0_real64)
+        call NewMaterial(mat2, "Steel", 5.0_real64, 2.0_real64, &
+                        10.0_real64, 1.0_real64, 2.0_real64)
+
+        ! Verify both materials have correct, independent properties
+        @assertEqual("Water", mat1%name)
+        @assertEqual("Steel", mat2%name)
+        @assertEqual(0.1_real64, mat1%absorption, tolerance=1.0e-10_real64)
+        @assertEqual(3.0_real64, mat2%absorption, tolerance=1.0e-10_real64)
+        @assertEqual(5.0_real64, mat1%Q, tolerance=1.0e-10_real64)
+        @assertEqual(10.0_real64, mat2%Q, tolerance=1.0e-10_real64)
+    end subroutine test_material_multiple_instances
+
+end module test_material

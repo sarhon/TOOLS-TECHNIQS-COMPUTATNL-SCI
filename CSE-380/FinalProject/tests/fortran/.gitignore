@@ -4,3 +4,9 @@ build/
 # Test executable
 test_runner
 test_results.xml
+
+# Coverage results
+coverage/
+*.gcda
+*.gcno
+*.gcov

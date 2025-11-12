@@ -1,0 +1,91 @@
+! test_settings.pf
+! Test Settings module functionality
+
+module test_settings
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use settings_mod, only: Settings, NewSettings
+    implicit none
+
+contains
+
+    @test
+    subroutine test_settings_initialization()
+        ! Test that Settings initializes correctly with all fields
+        type(Settings) :: config
+
+        call NewSettings(config, 1.0_real64, 2.0_real64, "vac", "vac", 100_int64, 8_int64)
+
+        ! Check all fields are initialized correctly
+        @assertEqual(1.0_real64, config%phiL, tolerance=1.0e-10_real64)
+        @assertEqual(2.0_real64, config%phiR, tolerance=1.0e-10_real64)
+        @assertEqual("vac", config%phiL_type)
+        @assertEqual("vac", config%phiR_type)
+        @assertEqual(100_int64, config%num_nodes)
+        @assertEqual(8_int64, config%sn)
+    end subroutine test_settings_initialization
+
+    @test
+    subroutine test_settings_reflective_boundaries()
+        ! Test reflective boundary conditions
+        type(Settings) :: config
+
+        call NewSettings(config, 0.0_real64, 0.0_real64, "ref", "ref", 100_int64, 8_int64)
+
+        @assertEqual("ref", config%phiL_type)
+        @assertEqual("ref", config%phiR_type)
+    end subroutine test_settings_reflective_boundaries
+
+    @test
+    subroutine test_settings_fixed_boundaries()
+        ! Test fixed boundary conditions with specific values
+        type(Settings) :: config
+
+        call NewSettings(config, 5.0_real64, 10.0_real64, "fixed", "fixed", 200_int64, 16_int64)
+
+        @assertEqual("fixed", config%phiL_type)
+        @assertEqual("fixed", config%phiR_type)
+        @assertEqual(5.0_real64, config%phiL, tolerance=1.0e-10_real64)
+        @assertEqual(10.0_real64, config%phiR, tolerance=1.0e-10_real64)
+    end subroutine test_settings_fixed_boundaries
+
+    @test
+    subroutine test_settings_mixed_boundaries()
+        ! Test mixed boundary conditions (different on each side)
+        type(Settings) :: config
+
+        call NewSettings(config, 1.5_real64, 0.0_real64, "fixed", "vac", 80_int64, 8_int64)
+
+        @assertEqual("fixed", config%phiL_type)
+        @assertEqual("vac", config%phiR_type)
+        @assertEqual(1.5_real64, config%phiL, tolerance=1.0e-10_real64)
+        @assertEqual(0.0_real64, config%phiR, tolerance=1.0e-10_real64)
+    end subroutine test_settings_mixed_boundaries
+
+    @test
+    subroutine test_settings_node_count()
+        ! Test different node counts
+        type(Settings) :: config1, config2
+
+        call NewSettings(config1, 0.0_real64, 0.0_real64, "vac", "vac", 10_int64, 4_int64)
+        call NewSettings(config2, 0.0_real64, 0.0_real64, "vac", "vac", 1000_int64, 4_int64)
+
+        @assertEqual(10_int64, config1%num_nodes)
+        @assertEqual(1000_int64, config2%num_nodes)
+    end subroutine test_settings_node_count
+
+    @test
+    subroutine test_settings_quadrature_orders()
+        ! Test different quadrature orders (Sn orders)
+        type(Settings) :: config1, config2, config3
+
+        call NewSettings(config1, 0.0_real64, 0.0_real64, "vac", "vac", 50_int64, 2_int64)
+        call NewSettings(config2, 0.0_real64, 0.0_real64, "vac", "vac", 50_int64, 8_int64)
+        call NewSettings(config3, 0.0_real64, 0.0_real64, "vac", "vac", 50_int64, 16_int64)
+
+        @assertEqual(2_int64, config1%sn)
+        @assertEqual(8_int64, config2%sn)
+        @assertEqual(16_int64, config3%sn)
+    end subroutine test_settings_quadrature_orders
+
+end module test_settings

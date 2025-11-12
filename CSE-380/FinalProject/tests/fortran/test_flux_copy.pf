@@ -1,0 +1,172 @@
+! test_flux_copy.pf
+! Test copy operations for RightFlux and LeftFlux types
+! This tests compiler-generated copy constructors
+
+module test_flux_copy
+    use funit
+    use, intrinsic :: iso_fortran_env, only: int64, real64
+    use right_flux, only: RightFlux, NewRightFlux
+    use left_flux, only: LeftFlux, NewLeftFlux
+    implicit none
+
+contains
+
+    @test
+    subroutine test_right_flux_copy_constructor()
+        ! Test that RightFlux can be copied correctly
+        type(RightFlux) :: rf1, rf2
+        real(real64) :: x(5), sigma_t(4)
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 5
+            x(i) = real(i - 1, real64) * 0.5_real64
+        end do
+        sigma_t = 1.0_real64
+
+        ! Create original RightFlux
+        call NewRightFlux(rf1, x, sigma_t, 0.5_real64)
+
+        ! Copy via assignment (invokes copy constructor)
+        rf2 = rf1
+
+        ! Verify all fields are copied correctly
+        @assertEqual(rf1%N, rf2%N)
+        @assertEqual(rf1%dx, rf2%dx, tolerance=1.0e-10_real64)
+        @assertEqual(rf1%mu, rf2%mu, tolerance=1.0e-10_real64)
+
+        ! Check array contents
+        do i = 1, rf1%N
+            @assertEqual(rf1%x(i), rf2%x(i), tolerance=1.0e-10_real64)
+        end do
+
+        do i = 1, rf1%N - 1
+            @assertEqual(rf1%sigma_t(i), rf2%sigma_t(i), tolerance=1.0e-10_real64)
+            @assertEqual(rf1%tau(i), rf2%tau(i), tolerance=1.0e-10_real64)
+        end do
+    end subroutine test_right_flux_copy_constructor
+
+    @test
+    subroutine test_left_flux_copy_constructor()
+        ! Test that LeftFlux can be copied correctly
+        type(LeftFlux) :: lf1, lf2
+        real(real64) :: x(6), sigma_t(5)
+        integer(int64) :: i
+
+        ! Setup test data
+        do i = 1, 6
+            x(i) = real(i - 1, real64) * 1.0_real64
+        end do
+        sigma_t = 2.0_real64
+
+        ! Create original LeftFlux
+        call NewLeftFlux(lf1, x, sigma_t, -0.5_real64)
+
+        ! Copy via assignment (invokes copy constructor)
+        lf2 = lf1
+
+        ! Verify all fields are copied correctly
+        @assertEqual(lf1%N, lf2%N)
+        @assertEqual(lf1%dx, lf2%dx, tolerance=1.0e-10_real64)
+        @assertEqual(lf1%mu, lf2%mu, tolerance=1.0e-10_real64)
+
+        ! Check array contents
+        do i = 1, lf1%N
+            @assertEqual(lf1%x(i), lf2%x(i), tolerance=1.0e-10_real64)
+        end do
+
+        do i = 1, lf1%N - 1
+            @assertEqual(lf1%sigma_t(i), lf2%sigma_t(i), tolerance=1.0e-10_real64)
+            @assertEqual(lf1%tau(i), lf2%tau(i), tolerance=1.0e-10_real64)
+        end do
+    end subroutine test_left_flux_copy_constructor
+
+    @test
+    subroutine test_right_flux_independent_after_copy()
+        ! Test that copied RightFlux objects are independent
+        type(RightFlux) :: rf1, rf2
+        real(real64) :: x(4), sigma_t(3)
+        integer(int64) :: i
+
+        do i = 1, 4
+            x(i) = real(i - 1, real64)
+        end do
+        sigma_t = 1.0_real64
+
+        call NewRightFlux(rf1, x, sigma_t, 1.0_real64)
+        rf2 = rf1
+
+        ! Modify rf1's solved array
+        rf1%solved(1) = 999.0_real64
+
+        ! rf2 should not be affected (deep copy expected)
+        @assertNotEqual(rf1%solved(1), rf2%solved(1), tolerance=1.0e-10_real64)
+    end subroutine test_right_flux_independent_after_copy
+
+    @test
+    subroutine test_left_flux_independent_after_copy()
+        ! Test that copied LeftFlux objects are independent
+        type(LeftFlux) :: lf1, lf2
+        real(real64) :: x(4), sigma_t(3)
+        integer(int64) :: i
+
+        do i = 1, 4
+            x(i) = real(i - 1, real64)
+        end do
+        sigma_t = 1.5_real64
+
+        call NewLeftFlux(lf1, x, sigma_t, -1.0_real64)
+        lf2 = lf1
+
+        ! Modify lf1's solved array
+        lf1%solved(1) = 888.0_real64
+
+        ! lf2 should not be affected (deep copy expected)
+        @assertNotEqual(lf1%solved(1), lf2%solved(1), tolerance=1.0e-10_real64)
+    end subroutine test_left_flux_independent_after_copy
+
+    @test
+    subroutine test_right_flux_assignment_chain()
+        ! Test multiple assignments in a chain
+        type(RightFlux) :: rf1, rf2, rf3
+        real(real64) :: x(3), sigma_t(2)
+        integer(int64) :: i
+
+        do i = 1, 3
+            x(i) = real(i, real64)
+        end do
+        sigma_t = 0.5_real64
+
+        call NewRightFlux(rf1, x, sigma_t, 0.8_real64)
+        rf2 = rf1
+        rf3 = rf2
+
+        ! All should have same values
+        @assertEqual(rf1%mu, rf3%mu, tolerance=1.0e-10_real64)
+        @assertEqual(rf1%dx, rf3%dx, tolerance=1.0e-10_real64)
+        @assertEqual(rf1%N, rf3%N)
+    end subroutine test_right_flux_assignment_chain
+
+    @test
+    subroutine test_left_flux_assignment_chain()
+        ! Test multiple assignments in a chain
+        type(LeftFlux) :: lf1, lf2, lf3
+        real(real64) :: x(3), sigma_t(2)
+        integer(int64) :: i
+
+        do i = 1, 3
+            x(i) = real(i, real64) * 2.0_real64
+        end do
+        sigma_t = 1.2_real64
+
+        call NewLeftFlux(lf1, x, sigma_t, -0.8_real64)
+        lf2 = lf1
+        lf3 = lf2
+
+        ! All should have same values
+        @assertEqual(lf1%mu, lf3%mu, tolerance=1.0e-10_real64)
+        @assertEqual(lf1%dx, lf3%dx, tolerance=1.0e-10_real64)
+        @assertEqual(lf1%N, lf3%N)
+    end subroutine test_left_flux_assignment_chain
+
+end module test_flux_copy

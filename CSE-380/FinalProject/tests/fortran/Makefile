@@ -31,9 +31,10 @@ LIBS += -fopenmp
 
 # Build directory for compiled artifacts
 BUILD_DIR = build
+COVERAGE_DIR = coverage
 
 # Test files
-TEST_PF = test_gauss_legendre.pf test_avg_flux.pf test_flux_solvers.pf
+TEST_PF = test_gauss_legendre.pf test_avg_flux.pf test_flux_solvers.pf test_material.pf test_settings.pf test_solve_flux.pf test_flux_copy.pf
 TEST_F90 = $(addprefix $(BUILD_DIR)/,$(TEST_PF:.pf=.F90))
 TEST_OBJ = $(addprefix $(BUILD_DIR)/,$(TEST_PF:.pf=.o))
 DRIVER_OBJ = $(BUILD_DIR)/driver.o
@@ -42,8 +43,12 @@ TEST_EXE = test_runner
 # Source code to test (from fdiscord)
 SRC_DIR = ../../fdiscord/src
 SOLVER_OBJ = $(addprefix $(BUILD_DIR)/,solver.o material.o flux.o settings.o)
+SRC_FILES = $(SRC_DIR)/solver.f90 $(SRC_DIR)/material.f90 $(SRC_DIR)/flux.f90 $(SRC_DIR)/settings.f90
 
-.PHONY: all clean test
+# Coverage flags
+COVERAGE_FLAGS = --coverage
+
+.PHONY: all clean test coverage html-coverage
 
 all: $(TEST_EXE)
 
@@ -72,6 +77,10 @@ $(BUILD_DIR)/solver.o: $(BUILD_DIR)/settings.o $(BUILD_DIR)/material.o $(BUILD_D
 $(BUILD_DIR)/test_gauss_legendre.o: $(BUILD_DIR)/solver.o
 $(BUILD_DIR)/test_avg_flux.o: $(BUILD_DIR)/solver.o
 $(BUILD_DIR)/test_flux_solvers.o: $(BUILD_DIR)/flux.o
+$(BUILD_DIR)/test_material.o: $(BUILD_DIR)/material.o
+$(BUILD_DIR)/test_settings.o: $(BUILD_DIR)/settings.o
+$(BUILD_DIR)/test_solve_flux.o: $(BUILD_DIR)/solver.o $(BUILD_DIR)/material.o $(BUILD_DIR)/settings.o
+$(BUILD_DIR)/test_flux_copy.o: $(BUILD_DIR)/flux.o
 
 # Link test executable
 $(TEST_EXE): $(TEST_OBJ) $(SOLVER_OBJ) $(DRIVER_OBJ)
@@ -81,6 +90,52 @@ $(TEST_EXE): $(TEST_OBJ) $(SOLVER_OBJ) $(DRIVER_OBJ)
 test: $(TEST_EXE)
 	./$(TEST_EXE) -x > test_results.xml
 
+# Coverage target - rebuild with coverage and generate reports
+coverage:
+	@echo "Building with coverage instrumentation..."
+	$(MAKE) clean
+	$(MAKE) FFLAGS="$(FFLAGS) $(COVERAGE_FLAGS)" LIBS="$(LIBS) $(COVERAGE_FLAGS)" all
+	@echo "Running tests..."
+	./$(TEST_EXE)
+	@echo "Generating coverage reports..."
+	@mkdir -p $(COVERAGE_DIR)
+	@echo ""
+	@echo "Coverage Summary:"
+	@echo "================"
+	@for src in $(SRC_FILES); do \
+		base=$$(basename $$src .f90); \
+		output=$$(gcov -o $(BUILD_DIR) $$src 2>&1); \
+		coverage=$$(echo "$$output" | grep "Lines executed" | tail -1); \
+		printf "  %-15s %s\n" "$$base.f90:" "$$coverage"; \
+		if [ -f $$base.f90.gcov ]; then \
+			mv $$base.f90.gcov $(COVERAGE_DIR)/; \
+		fi; \
+	done
+	@echo ""
+	@echo "Detailed reports available in $(COVERAGE_DIR)/"
+
+# HTML coverage target - generate browsable HTML coverage reports
+html-coverage:
+	@echo "Building with coverage instrumentation..."
+	$(MAKE) clean
+	$(MAKE) FFLAGS="$(FFLAGS) $(COVERAGE_FLAGS)" LIBS="$(LIBS) $(COVERAGE_FLAGS)" all
+	@echo "Running tests..."
+	./$(TEST_EXE)
+	@echo "Generating HTML coverage reports..."
+	@mkdir -p $(COVERAGE_DIR)/html
+	@lcov --capture --directory $(BUILD_DIR) --output-file $(COVERAGE_DIR)/coverage-all.info \
+		--gcov-tool gcov-13 --ignore-errors source --quiet
+	@lcov --extract $(COVERAGE_DIR)/coverage-all.info '*/fdiscord/src/*' \
+		--output-file $(COVERAGE_DIR)/coverage.info --quiet
+	@genhtml $(COVERAGE_DIR)/coverage.info --output-directory $(COVERAGE_DIR)/html \
+		--ignore-errors unmapped,source --quiet
+	@echo "Cleaning up temporary gcov files..."
+	@find ../.. -name "*.gcov" ! -path "*/tests/fortran/coverage/*" -delete 2>/dev/null || true
+	@rm -f $(COVERAGE_DIR)/coverage-all.info
+	@echo ""
+	@echo "HTML coverage report generated in $(COVERAGE_DIR)/html/"
+	@echo "Open $(COVERAGE_DIR)/html/index.html in a browser to view"
+
 # Clean
 clean:
-	rm -rf $(BUILD_DIR) $(TEST_EXE)
+	rm -rf $(BUILD_DIR) $(TEST_EXE) $(COVERAGE_DIR) *.gcda *.gcno *.gcov test_results.xml
