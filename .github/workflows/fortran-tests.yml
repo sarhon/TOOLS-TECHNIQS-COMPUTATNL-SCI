@@ -1,0 +1,133 @@
+name: Fortran Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'CSE-380/FinalProject/fdiscord/**'
+      - 'CSE-380/FinalProject/tests/fortran/**'
+      - '.github/workflows/fortran-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'CSE-380/FinalProject/fdiscord/**'
+      - 'CSE-380/FinalProject/tests/fortran/**'
+      - '.github/workflows/fortran-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [gfortran-13]
+        pfunit-version: ['4.14.0']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Fortran compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gfortran-13
+        sudo update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-13 100
+        gfortran --version
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y cmake python3 python3-pip lcov
+
+    - name: Cache pFUnit installation
+      id: cache-pfunit
+      uses: actions/cache@v4
+      with:
+        path: ~/pfunit
+        key: pfunit-${{ matrix.pfunit-version }}-${{ runner.os }}-${{ matrix.compiler }}
+
+    - name: Build and install pFUnit
+      if: steps.cache-pfunit.outputs.cache-hit != 'true'
+      run: |
+        cd ~
+        git clone --branch v${{ matrix.pfunit-version }} https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git pfunit-src
+        cd pfunit-src
+        mkdir build
+        cd build
+        cmake .. \
+          -DCMAKE_INSTALL_PREFIX=~/pfunit \
+          -DSKIP_MPI=YES \
+          -DSKIP_OPENMP=YES \
+          -DCMAKE_Fortran_COMPILER=gfortran
+        make -j$(nproc)
+        make install
+        cd ~
+        rm -rf pfunit-src
+
+    - name: Set pFUnit environment
+      run: |
+        echo "PFUNIT_DIR=$HOME/pfunit" >> $GITHUB_ENV
+        echo "$HOME/pfunit/bin" >> $GITHUB_PATH
+
+    - name: Build tests
+      working-directory: CSE-380/FinalProject/tests/fortran
+      run: |
+        make clean
+        make
+
+    - name: Run tests
+      working-directory: CSE-380/FinalProject/tests/fortran
+      run: |
+        ./test_runner --verbose
+
+    - name: Generate coverage report
+      if: always()
+      working-directory: CSE-380/FinalProject/tests/fortran
+      run: |
+        make clean
+        make html-coverage
+
+    - name: Upload coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v4
+      with:
+        files: CSE-380/FinalProject/tests/fortran/coverage/coverage.info
+        flags: fortran
+        name: fortran-coverage
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage HTML report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: CSE-380/FinalProject/tests/fortran/coverage/html/
+        retention-days: 30
+
+    - name: Display coverage summary
+      if: always()
+      working-directory: CSE-380/FinalProject/tests/fortran
+      run: |
+        echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -d coverage ]; then
+          echo "Coverage report generated successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View the full HTML coverage report in the artifacts." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Coverage report not available" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Test summary
+      if: always()
+      run: |
+        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All Fortran unit tests completed." >> $GITHUB_STEP_SUMMARY
+        echo "- **Compiler**: gfortran-${{ matrix.compiler }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **pFUnit Version**: ${{ matrix.pfunit-version }}" >> $GITHUB_STEP_SUMMARY
