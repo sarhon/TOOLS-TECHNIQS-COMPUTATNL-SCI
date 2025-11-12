@@ -53,3 +53,20 @@ htmlcov/
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python virtual environments
+.venv/
+venv/
+pyenv_*/
+py_env_*/
+
+# Build directories
+bin/
+build/
