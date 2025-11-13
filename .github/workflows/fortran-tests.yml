@@ -18,6 +18,8 @@ on:
 jobs:
   test:
     name: Build and Test
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
 
     strategy:
