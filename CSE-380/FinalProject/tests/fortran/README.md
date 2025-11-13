@@ -105,22 +105,6 @@ This test suite runs automatically on GitHub Actions for every push and pull req
 5. **Uploads coverage** to Codecov (requires `CODECOV_TOKEN` secret)
 6. **Publishes HTML coverage** as a downloadable artifact
 
-### Setting up CI
-
-To enable CI on your fork:
-
-1. **Update badge URLs** in this README by replacing `YOUR_USERNAME` with your GitHub username
-2. **Optional: Enable Codecov**
-   - Sign up at [codecov.io](https://codecov.io) and link your repository
-   - Add `CODECOV_TOKEN` to your repository secrets (Settings → Secrets → Actions)
-   - Without this token, coverage upload will be skipped but won't fail the CI
-
-### Viewing CI Results
-
-- **Test status**: Click the badge at the top of this README
-- **Coverage reports**: Download from the "Artifacts" section of any workflow run
-- **Test output**: View in the "Run tests" step of the workflow logs
-
 ## Test Files
 
 The test suite rigorously validates the core functionality of the neutron transport solver. Each test file focuses on a specific module or component:
