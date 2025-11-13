@@ -102,7 +102,7 @@ This test suite runs automatically on GitHub Actions for every push and pull req
 2. **Compiles the tests** with gfortran-13
 3. **Runs all tests** with verbose output
 4. **Generates coverage reports** (both text and HTML)
-5. **Uploads coverage** to Codecov (requires `CODECOV_TOKEN` secret)
+5. **Uploads coverage** to Codecov
 6. **Publishes HTML coverage** as a downloadable artifact
 
 ## Test Files
