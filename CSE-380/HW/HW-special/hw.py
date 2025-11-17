@@ -54,7 +54,7 @@ def compile(clean: bool = True, enable_par:bool=False):
     build = 'build'
     bin = 'bin'
 
-    binary_name = 'hw1'
+    binary_name = 'hw-special'
     binary_path = os.path.join(bin, binary_name)
     
     os.makedirs(build, exist_ok=True)
@@ -180,7 +180,7 @@ def main():
         # Run with enhanced timing and append to summary.txt
         cmd = ['/usr/bin/time', '-p', '-o', time_file, '--', binary_path, params_dst, directory]
         cmd = f'/usr/bin/time -p -o {time_file} -- {binary_path} {params_dst} {directory}'
-        cmd = f"/usr/bin/time -f $'elapsed %E\\nuser %U\\nsys %S\\nCPU %P\\nvol ctxsw %w\\ninvol ctxsw %c\\nmajflt %F\\nminflt %R\\nmaxRSS %M KB' -o {time_file} -- {binary_path} {params_dst} {directory}"
+        # cmd = f"/usr/bin/time -f $'elapsed %E\\nuser %U\\nsys %S\\nCPU %P\\nvol ctxsw %w\\ninvol ctxsw %c\\nmajflt %F\\nminflt %R\\nmaxRSS %M KB' -o {time_file} -- {binary_path} {params_dst} {directory}"
         print(f"Running: {cmd}\n")
 
         # old simple way

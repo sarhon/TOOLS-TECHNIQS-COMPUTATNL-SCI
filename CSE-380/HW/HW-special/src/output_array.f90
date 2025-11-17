@@ -21,23 +21,31 @@ module output_array
             class(OutputArray), intent(out) :: self
             integer, intent(in) :: n
             integer(int64) :: y_bytes
+            integer :: i, j
 
             self%n = n
 
             print *, "   Allocate y"
             allocate(self%y(n,n))
             print *, "   End allocate y"
-            
+
             print *, "   Set y=1.0"
-            !$omp parallel workshare
-            self%y = 1.0_real32
-            !$omp end parallel workshare
+            ! Column-major order initialization (optimal for Fortran)
+            ! This reduces TLB misses and ensures first-touch optimization
+            !$omp parallel do schedule(static) private(i)
+            do j = 1, self%n
+                !$omp simd
+                do i = 1, self%n
+                    self%y(i,j) = 1.0_real32
+                end do
+            end do
+            !$omp end parallel do
             print *, "   End set"
 
             print *, "   Calculate y_bytes"
             self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64
             print *, "   End calculate"
-            
+
         end subroutine new_output_array
 
         subroutine compute(self, inputs, k, row)

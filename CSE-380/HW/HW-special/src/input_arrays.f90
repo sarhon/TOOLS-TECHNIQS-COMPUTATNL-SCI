@@ -16,6 +16,7 @@ module input_arrays
             class(InputArrays), intent(out) :: self
             integer, intent(in) :: n, m
             integer(int64) :: x_bytes, b_bytes
+            integer :: i, j
             
             self%n = n
             self%m = m
@@ -31,15 +32,25 @@ module input_arrays
             print *, "   End allocate m"
             
             print *, "   Set x=2.0"
-            !$omp parallel workshare
-            self%x = 2.0_real32
-            !$omp end parallel workshare
+            ! Column-major order initialization (optimal for Fortran)
+            ! This reduces TLB misses and ensures first-touch optimization
+            ! Each thread touches pages in the order they're laid out in memory
+            !$omp parallel do schedule(static) private(i)
+            do j = 1, self%n
+                !$omp simd
+                do i = 1, self%n
+                    self%x(i,j) = 2.0_real32
+                end do
+            end do
+            !$omp end parallel do
             print *, "   End set"
 
-            print *, "   Set x=1.0"
-            !$omp parallel workshare
-            self%b = 1.0_real32
-            !$omp end parallel workshare
+            print *, "   Set b=1.0"
+            !$omp parallel do schedule(static)
+            do i = 1, self%m
+                self%b(i) = 1.0_real32
+            end do
+            !$omp end parallel do
             print *, "   End set"
 
             print *, "   Calculate x_bytes"
