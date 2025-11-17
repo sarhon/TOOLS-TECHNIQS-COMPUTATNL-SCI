@@ -29,18 +29,11 @@ module output_array
             allocate(self%y(n,n))
             print *, "   End allocate y"
 
-            print *, "   Set y=1.0"
-            ! Column-major order initialization (optimal for Fortran)
-            ! This reduces TLB misses and ensures first-touch optimization
-            !$omp parallel do schedule(static) private(i)
-            do j = 1, self%n
-                !$omp simd
-                do i = 1, self%n
-                    self%y(i,j) = 1.0_real32
-                end do
-            end do
-            !$omp end parallel do
-            print *, "   End set"
+            print *, "   Set y=1.0 (parallel)"
+            !$omp parallel workshare
+            self%y = 1.0_real32
+            !$omp end parallel workshare
+            print *, "   End set y"
 
             print *, "   Calculate y_bytes"
             self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64

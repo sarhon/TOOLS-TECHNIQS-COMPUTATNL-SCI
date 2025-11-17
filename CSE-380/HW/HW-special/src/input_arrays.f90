@@ -23,35 +23,23 @@ module input_arrays
 
             print *, "   Allocate x"
             allocate(self%x(n,n))
-            ! allocate(self%x(n,n), source=2.0_real32)
             print *, "   End allocate x"
 
-            print *, "   Allocate m"
-            allocate(self%b(m))
-            ! allocate(self%b(m), source=1.0_real32)
-            print *, "   End allocate m"
-            
-            print *, "   Set x=2.0"
-            ! Column-major order initialization (optimal for Fortran)
-            ! This reduces TLB misses and ensures first-touch optimization
-            ! Each thread touches pages in the order they're laid out in memory
-            !$omp parallel do schedule(static) private(i)
-            do j = 1, self%n
-                !$omp simd
-                do i = 1, self%n
-                    self%x(i,j) = 2.0_real32
-                end do
-            end do
-            !$omp end parallel do
-            print *, "   End set"
+            print *, "   Set x=2.0 (parallel)"
+            !$omp parallel workshare
+            self%x = 2.0_real32
+            !$omp end parallel workshare
+            print *, "   End set x"
 
-            print *, "   Set b=1.0"
-            !$omp parallel do schedule(static)
-            do i = 1, self%m
-                self%b(i) = 1.0_real32
-            end do
-            !$omp end parallel do
-            print *, "   End set"
+            print *, "   Allocate b"
+            allocate(self%b(m))
+            print *, "   End allocate b"
+
+            print *, "   Set b=1.0 (parallel)"
+            !$omp parallel workshare
+            self%b = 1.0_real32
+            !$omp end parallel workshare
+            print *, "   End set b"
 
             print *, "   Calculate x_bytes"
             self%x_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%x) / 8_int64
