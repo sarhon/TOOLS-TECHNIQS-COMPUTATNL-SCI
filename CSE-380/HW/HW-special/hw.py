@@ -16,14 +16,6 @@ class Case:
         self.print_summary: bool = print_summary
         self.print_array: bool = print_array
 
-        # input validation (done in main.f90)
-        # assert m > 0
-        # assert n > 0
-        # assert k > 0
-        # assert m <= n
-        # assert k <= n
-        # assert k <= m
-
     def make_nml(self, dst:str, group_name: str = "params"):
         print(f'\nSaving case={self.name} -> {dst}')
         nml = {
@@ -89,7 +81,8 @@ def compile(clean: bool = True, enable_par:bool=False):
         else:
             r = subprocess.run(gfortran_base + ['-c', in_path, '-J', 'build', '-o', out_path], check=True)
         print(' '.join(r.args))
-    # compile main app inot intermediate file
+
+    # compile main app into intermediate file
     print('Compiling main app')
     main_in = 'main.f90'
     main_out = main_in.replace('f90', 'o')
@@ -98,18 +91,13 @@ def compile(clean: bool = True, enable_par:bool=False):
     out_path = os.path.join(build, main_out)
     o_list = [out_path] + o_list
 
-    # print(f'    {in_path} -> {out_path}')
     if enable_par:
         r = subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-fopenmp', '-o', out_path], check=True)
     else:
         r = subprocess.run(gfortran_base + ['-c', in_path, '-I', build, '-o', out_path], check=True)
     print(' '.join(r.args))
 
-    # compile binary using intermediate files
     print('Compiling binary')
-    # files_str = ' '.join(o_list)
-    
-    # print(f'    {files_str} -> {binary_path}')
     if enable_par:
         r = subprocess.run(gfortran_base + o_list + ['-o', binary_path, '-fopenmp'], check=True)
     else:
@@ -154,20 +142,20 @@ def main():
     fail_5 = Case(name="fail_5", n=10,  m=10, k=11)
 
     cases = [
-        # case_a,
-        # case_b,
+        case_a,
+        case_b,
         case_c,
-        # case_d, # this case requires a lot of ram
+        case_d, # this case requires a lot of ram
 
-        # case_q6_row,
-        # case_q6_col,
-        #
-        # # expected fails
-        # fail_1,
-        # fail_2,
-        # fail_3,
-        # fail_4,
-        # fail_5,
+        case_q6_row,
+        case_q6_col,
+
+        # expected fails
+        fail_1,
+        fail_2,
+        fail_3,
+        fail_4,
+        fail_5,
         ]
 
     for case in cases:
@@ -178,31 +166,17 @@ def main():
         time_file = os.path.join(directory, "time.txt")
 
         # Run with enhanced timing and append to summary.txt
-        cmd = ['/usr/bin/time', '-p', '-o', time_file, '--', binary_path, params_dst, directory]
         cmd = f'/usr/bin/time -p -o {time_file} -- {binary_path} {params_dst} {directory}'
-        # cmd = f"/usr/bin/time -f $'elapsed %E\\nuser %U\\nsys %S\\nCPU %P\\nvol ctxsw %w\\ninvol ctxsw %c\\nmajflt %F\\nminflt %R\\nmaxRSS %M KB' -o {time_file} -- {binary_path} {params_dst} {directory}"
+
         print(f"Running: {cmd}\n")
-
-        # old simple way
-        # os.system(cmd)
-
         start = time.perf_counter() # start time
-        # result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         os.system(cmd)
         end = time.perf_counter() # end time
         elapsed = end - start # elapsed time for subprocess
         
-        
-        # if result.stderr:
-        #     print(result.stdout + result.stderr)
-        # else:
-        #     print(result.stdout)
-
         # append the timed subprocess execution to the time.txt file
         with open(time_file, 'a') as f:
             f.write(f'\nSubprocess time: {elapsed:.2E} [s]')
-
-    
 
 
 if __name__ == "__main__":
