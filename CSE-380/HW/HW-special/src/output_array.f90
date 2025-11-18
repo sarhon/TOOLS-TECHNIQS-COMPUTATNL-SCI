@@ -21,51 +21,34 @@ module output_array
             class(OutputArray), intent(out) :: self
             integer, intent(in) :: n
             integer(int64) :: y_bytes
+            integer :: i, j
 
             self%n = n
 
             print *, "   Allocate y"
             allocate(self%y(n,n))
             print *, "   End allocate y"
-            
-            print *, "   Set y=1.0"
+
+            print *, "   Set y=1.0 (parallel)"
             !$omp parallel workshare
             self%y = 1.0_real32
             !$omp end parallel workshare
-            print *, "   End set"
+            print *, "   End set y"
 
             print *, "   Calculate y_bytes"
             self%y_bytes = int(self%n, int64) * int(self%n, int64) * storage_size(self%y) / 8_int64
             print *, "   End calculate"
-            
+
         end subroutine new_output_array
 
         subroutine compute(self, inputs, k, row)
-            use omp_lib
             class(OutputArray), intent(inout) :: self
             class(InputArrays), intent(in) :: inputs
             integer, intent(in) :: k
             logical, intent(in) :: row
-            integer :: num_threads, i, j
+            integer :: i, j
 
             print *, "starting compute"
-
-            ! !$omp parallel
-            ! !$omp single
-            ! num_threads = omp_get_num_threads()
-            ! ! call omp_set_num_threads(num_threads)
-            ! print *, "Number of threads: ", num_threads
-            ! !$omp end single
-            ! !$omp end parallel
-
-            ! I think this is faster than doing a loop
-            ! This should compile to a tight double loop
-            ! print *, "    (y + 2.0_real32 * x) / 5.0_real32"
-            ! !$omp parallel workshare
-            ! self%y = (self%y + 2.0_real32 * inputs%x) / 5.0_real32
-            ! !$omp end parallel workshare
-            ! print *, "    End"
-
             print *, "    Start (y + 2.0_real32 * x) / 5.0_real32"
             !$omp parallel do
             do j = 1, self%n
@@ -97,16 +80,6 @@ module output_array
             end if
 
             print *, "Ending compute"
-
-            ! if (row) then
-            !     !$omp parallel workshare
-            !     self%y(k, 1:inputs%m) = self%y(k, 1:inputs%m) + inputs%b(1:inputs%m)
-            !     !$omp end parallel workshare
-            ! else ! column major (Fortran)
-            !     !$omp parallel workshare
-            !     self%y(1:inputs%m, k) = self%y(1:inputs%m, k) + inputs%b(1:inputs%m)
-            !     !$omp end parallel workshare
-            ! end if
 
         end subroutine compute
 

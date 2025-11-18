@@ -1,7 +1,7 @@
-program name
+program hwspecial
     use, intrinsic :: iso_fortran_env, only: real32, output_unit
     use mem_util, only : pbytes
-    use path_util
+    use path_util, only : join_path
     use input_arrays
     use output_array
     implicit none
@@ -48,6 +48,17 @@ program name
     end if
     print *, "Ending reading nml file"
 
+    ! gets the second argument (output directory)
+    if (nargs > 1) then
+        call get_command_argument(2, output_dir)
+    end if
+
+    ! 3e Safeguard/validation implementation. These if/else statements
+    ! check to make sure all input parameters are valid.
+    ! These checks ensure that there are no index out of bounds
+    ! errors. These checks are placed here to prevent slow failing
+    ! of memory allocation or during computation
+
     print *, "Starting validation"
     ! Input validation
     if (n <= 0) then ! fail 1
@@ -76,8 +87,7 @@ program name
     end if
     print *, "Ending validation"
 
-    ! print *, 'Running: Arrays'
-    ! 3a I placed the class initializations here because it is after the defintion of 
+    ! 3a I placed the class initializations here because it is after the defintion of
     !    the n, m, and k variables but before the invokation of the computation method
     
     print *, "Starting init of inputs"
@@ -89,18 +99,35 @@ program name
     print *, "Ending init of outputs"
 
     ! 3b The arrys are dynamically allocated on the heap at runtime 
-    !    this also makes senst to allocate to the heap because if the size of some of the arrays 
-    !    being 90k x 90k it would likely overflow the stack if allocated there
+    !    this also makes senst to allocate to the heap because if
+    !    the size of some of the arrays being 90k x 90k it would
+    !    likely overflow the stack if allocated there
     
-    ! 3c I used the standard dynamic allocation built into Fortran. This was done so that the size 
-    !    of the arrays could be defined at runtime based on the input parameters
+    ! 3c I used the standard dynamic allocation built into Fortran.
+    !    This was done so that the size of the arrays could be
+    !    defined at runtime based on the input parameters
 
-    ! 3d I expect the code to spend the most time on the in the method call below. This is because
-    !    this is where the matrix operations take place, even though I am using the built in Fortran
-    !    matrix operations, the underlying machine code needs still loop over every entry
+    ! 3d I expect the code to spend the most time on the in the
+    !    method call below. This is because this is where the matrix
+    !    operations take place, even though I am using the built in
+    !    Fortran matrix operations, the underlying machine code needs
+    !    still loop over every entry
     !                                         --- or ---
-    !    (if it is enabled) the array save to a file at the bottom of this code, this takes forever because it 
-    !    has to loop over every entry then write to storage (not cache or ram) which is very slow
+    !    (if it is enabled) the array save to a file at the bottom
+    !    of this code, this takes forever because it has to loop over
+    !    every entry then write to storage (not cache or ram) which
+    !    is very slow
+    !                                       --- actually ---
+    !   What I found out is that a large amount of time was spend on
+    !   the initialization of the matricies which is the result of
+    !   high system time. Depending on the methodology the
+    !   intialization of the object could could take longer than the
+    !   actual computation because it required the intialization of 2
+    !   matricies and 1 vector. Where as the computaiton only operates
+    !   on 1 matrix that is already in memory. The result of the high
+    !   system time is beleived to be due to minor page faults as the
+    !   code attempts to grab a peice of memory that is not yet
+    !   initialized.
     call output%compute(inputs=inputs, k=k, row=row)
     
     ! First and kth column sum (most efficient - contiguous memory access)
@@ -110,11 +137,6 @@ program name
     ! First and kth row sum (less efficient but necessary - strided access)
     sum_first_row = sum(output%y(1, :))
     sum_kth_row = sum(output%y(k, :))
-    
-    ! gets the second argument (output directory)
-    if (nargs > 1) then
-        call get_command_argument(2, output_dir)
-    end if
 
     output_summary_dst = join_path(output_dir, 'summary.txt')
     print *, "Saving: ", output_summary_dst
@@ -144,4 +166,4 @@ program name
         close(output_array_unit)
     end if
 
-end program name
+end program hwspecial

@@ -3,24 +3,6 @@ module mem_util
     implicit none
 
     contains
-
-    pure function nbytes(matrix) result(bytes)
-        class(*), intent(in)    :: matrix(..)       ! input generic matrix (requires: fortran 2018)
-        integer(int64)          :: bytes
-        integer(int64)          :: n
-        integer                 :: bits_per_element
-
-        ! number of elements
-        n = size(matrix, kind=int64)
-
-        ! number of bits per elelemnts
-        bits_per_element = storage_size(matrix)
-
-        ! find total bits -> bytes
-        bytes = n * int(bits_per_element, int64) / 8_int64
-
-    end function nbytes
-    
     pure function pbytes(bytes) result(s)
         integer(int64), intent(in) :: bytes
         character(:), allocatable :: s
@@ -52,5 +34,4 @@ module mem_util
         
         s = trim(adjustl(buf))
     end function pbytes
-
 end module mem_util

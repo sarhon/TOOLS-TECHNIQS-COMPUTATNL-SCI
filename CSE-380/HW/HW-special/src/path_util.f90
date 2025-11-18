@@ -16,5 +16,4 @@ module path_util
             full_path = filename
         end if
     end function join_path
-
 end module path_util
