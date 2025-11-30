@@ -1,4 +1,4 @@
-from pydiscord import Material, Settings, solve_flux
+from .solver import Material, Settings, solve_flux
 import numpy as np
 import json
 import sys

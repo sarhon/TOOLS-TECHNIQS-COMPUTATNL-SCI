@@ -1,0 +1,20 @@
+{
+  "description": "Pure absorption material - no scattering, shows exponential decay",
+  "materials": [
+    {
+      "name": "pure_absorber",
+      "total": 1.0,
+      "scatter": 0.0,
+      "Q": 1.0,
+      "bounds": [-10.0, 10.0]
+    }
+  ],
+  "settings": {
+    "phiL_type": "vac",
+    "phiR_type": "vac",
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "num_nodes": 100,
+    "sn": 96
+  }
+}

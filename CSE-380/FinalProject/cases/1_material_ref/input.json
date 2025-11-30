@@ -1,0 +1,20 @@
+{
+  "description": "Three-material discrete ordinates transport problem",
+  "materials": [
+    {
+      "name": "source",
+      "total": 1.0,
+      "scatter": 0.0,
+      "Q": 1.0,
+      "bounds": [-5.0, 5.0]
+    }
+  ],
+  "settings": {
+    "phiL_type": "ref",
+    "phiR_type": "ref",
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "num_nodes": 100,
+    "sn": 96
+  }
+}

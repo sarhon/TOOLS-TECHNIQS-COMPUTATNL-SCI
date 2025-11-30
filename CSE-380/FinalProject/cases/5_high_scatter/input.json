@@ -1,0 +1,20 @@
+{
+  "description": "Highly scattering material - neutrons bounce around before absorption",
+  "materials": [
+    {
+      "name": "high_scatter",
+      "total": 2.0,
+      "scatter": 1.98,
+      "Q": 1.0,
+      "bounds": [-10.0, 10.0]
+    }
+  ],
+  "settings": {
+    "phiL_type": "vac",
+    "phiR_type": "vac",
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "num_nodes": 100,
+    "sn": 96
+  }
+}

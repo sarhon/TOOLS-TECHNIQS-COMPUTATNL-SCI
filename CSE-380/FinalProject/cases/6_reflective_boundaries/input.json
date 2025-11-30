@@ -1,0 +1,20 @@
+{
+  "description": "Reflective boundaries on both sides - neutrons cannot escape",
+  "materials": [
+    {
+      "name": "moderate_absorber",
+      "total": 1.0,
+      "scatter": 0.5,
+      "Q": 1.0,
+      "bounds": [-10.0, 10.0]
+    }
+  ],
+  "settings": {
+    "phiL_type": "ref",
+    "phiR_type": "ref",
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "num_nodes": 100,
+    "sn": 96
+  }
+}
