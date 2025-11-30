@@ -178,6 +178,9 @@ contains
             position_index = 1
 
             ! Solve for left-going fluxes
+            ! OpenMP parallelization: Each thread handles different angles
+            !$omp parallel do private(i,j,left_ordinance,left_weight,phiN,lf) &
+            !$omp& reduction(+:left_flux,left_avg_flux) schedule(dynamic)
             do i = 1, midpoint
                 left_ordinance = left_mu(i)
                 left_weight = left_w(i)
@@ -196,7 +199,7 @@ contains
                 call SolveMatrixLeft(lf, phiN, Q_source, Q_scatter)
 
                 ! Store results
-                angular_flux(position_index, :) = lf%solved
+                angular_flux(i, :) = lf%solved
                 left_flux = left_flux + lf%solved * left_weight
 
                 ! Calculate average flux
@@ -206,11 +209,13 @@ contains
                                  left_ordinance, Q_source(j)/2.0_real64 + Q_scatter(j), &
                                  nodal_total(j)) * left_weight
                 end do
-
-                position_index = position_index + 1
             end do
+            !$omp end parallel do
 
             ! Solve for right-going fluxes
+            ! OpenMP parallelization: Each thread handles different angles
+            !$omp parallel do private(i,j,right_ordinance,right_weight,phi0,rf) &
+            !$omp& reduction(+:right_flux,right_avg_flux) schedule(dynamic)
             do i = 1, midpoint
                 right_ordinance = right_mu(i)
                 right_weight = right_w(i)
@@ -229,7 +234,7 @@ contains
                 call SolveMatrix(rf, phi0, Q_source, Q_scatter)
 
                 ! Store results
-                angular_flux(position_index, :) = rf%solved
+                angular_flux(midpoint + i, :) = rf%solved
                 right_flux = right_flux + rf%solved * right_weight
 
                 ! Calculate average flux
@@ -239,9 +244,8 @@ contains
                                  right_ordinance, Q_source(j)/2.0_real64 + Q_scatter(j), &
                                  nodal_total(j)) * right_weight
                 end do
-
-                position_index = position_index + 1
             end do
+            !$omp end parallel do
 
             ! Update total flux
             old_flux = total_flux

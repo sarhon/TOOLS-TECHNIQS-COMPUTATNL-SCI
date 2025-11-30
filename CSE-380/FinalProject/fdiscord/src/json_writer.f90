@@ -71,17 +71,17 @@ contains
         write(unit, '(A)', advance='no') '    "mu": ['
         do i = 1, num_angles
             if (i < num_angles) then
-                write(unit, '(ES23.16,A)', advance='no') mu(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') mu(i), ', '
             else
-                write(unit, '(ES23.16,A)') mu(i), '],'
+                write(unit, '(ES25.16E3,A)') mu(i), '],'
             end if
         end do
         write(unit, '(A)', advance='no') '    "weights": ['
         do i = 1, num_angles
             if (i < num_angles) then
-                write(unit, '(ES23.16,A)', advance='no') w(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') w(i), ', '
             else
-                write(unit, '(ES23.16,A)') w(i), ']'
+                write(unit, '(ES25.16E3,A)') w(i), ']'
             end if
         end do
         write(unit, '(A)') '  },'
@@ -91,17 +91,17 @@ contains
         write(unit, '(A)', advance='no') '    "x_edges": ['
         do i = 1, num_edges
             if (i < num_edges) then
-                write(unit, '(ES23.16,A)', advance='no') x_edges(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') x_edges(i), ', '
             else
-                write(unit, '(ES23.16,A)') x_edges(i), '],'
+                write(unit, '(ES25.16E3,A)') x_edges(i), '],'
             end if
         end do
         write(unit, '(A)', advance='no') '    "x_centers": ['
         do i = 1, num_centers
             if (i < num_centers) then
-                write(unit, '(ES23.16,A)', advance='no') x_centers(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') x_centers(i), ', '
             else
-                write(unit, '(ES23.16,A)') x_centers(i), ']'
+                write(unit, '(ES25.16E3,A)') x_centers(i), ']'
             end if
         end do
         write(unit, '(A)') '  },'
@@ -111,17 +111,17 @@ contains
         write(unit, '(A)', advance='no') '    "scalar_flux": ['
         do i = 1, num_edges
             if (i < num_edges) then
-                write(unit, '(ES23.16,A)', advance='no') total_flux(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') total_flux(i), ', '
             else
-                write(unit, '(ES23.16,A)') total_flux(i), '],'
+                write(unit, '(ES25.16E3,A)') total_flux(i), '],'
             end if
         end do
         write(unit, '(A)', advance='no') '    "current": ['
         do i = 1, num_edges
             if (i < num_edges) then
-                write(unit, '(ES23.16,A)', advance='no') current(i), ', '
+                write(unit, '(ES25.16E3,A)', advance='no') current(i), ', '
             else
-                write(unit, '(ES23.16,A)') current(i), '],'
+                write(unit, '(ES25.16E3,A)') current(i), '],'
             end if
         end do
         write(unit, '(A)') '    "angular_flux": ['
@@ -129,12 +129,12 @@ contains
             write(unit, '(A)', advance='no') '      ['
             do j = 1, num_edges
                 if (j < num_edges) then
-                    write(unit, '(ES23.16,A)', advance='no') angular_flux(i,j), ', '
+                    write(unit, '(ES25.16E3,A)', advance='no') angular_flux(i,j), ', '
                 else
                     if (i < num_angles) then
-                        write(unit, '(ES23.16,A)') angular_flux(i,j), '],'
+                        write(unit, '(ES25.16E3,A)') angular_flux(i,j), '],'
                     else
-                        write(unit, '(ES23.16,A)') angular_flux(i,j), ']'
+                        write(unit, '(ES25.16E3,A)') angular_flux(i,j), ']'
                     end if
                 end if
             end do
@@ -144,10 +144,10 @@ contains
 
         ! Write summary
         write(unit, '(A)') '  "summary": {'
-        write(unit, '(A,ES23.16,A)') '    "max_flux": ', max_flux, ','
-        write(unit, '(A,ES23.16,A)') '    "min_flux": ', min_flux, ','
-        write(unit, '(A,ES23.16,A)') '    "flux_at_center": ', flux_center, ','
-        write(unit, '(A,ES23.16)') '    "current_at_center": ', current_center
+        write(unit, '(A,ES25.16E3,A)') '    "max_flux": ', max_flux, ','
+        write(unit, '(A,ES25.16E3,A)') '    "min_flux": ', min_flux, ','
+        write(unit, '(A,ES25.16E3,A)') '    "flux_at_center": ', flux_center, ','
+        write(unit, '(A,ES25.16E3)') '    "current_at_center": ', current_center
         write(unit, '(A)') '  }'
         write(unit, '(A)') '}'
 

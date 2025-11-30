@@ -1,0 +1,34 @@
+{
+  "description": "Two separate source regions with different strengths, separated by non-source absorber",
+  "materials": [
+    {
+      "name": "weak_source",
+      "total": 1.5,
+      "scatter": 1.0,
+      "Q": 0.5,
+      "bounds": [-15.0, -5.0]
+    },
+    {
+      "name": "absorber_gap",
+      "total": 2.0,
+      "scatter": 0.5,
+      "Q": 0.0,
+      "bounds": [-5.0, 5.0]
+    },
+    {
+      "name": "strong_source",
+      "total": 1.5,
+      "scatter": 1.0,
+      "Q": 2.0,
+      "bounds": [5.0, 15.0]
+    }
+  ],
+  "settings": {
+    "phiL_type": "vac",
+    "phiR_type": "vac",
+    "phiL": 0.0,
+    "phiR": 0.0,
+    "num_nodes": 90,
+    "sn": 96
+  }
+}
