@@ -4,16 +4,17 @@
 set -e  # Exit on error
 
 CASES=(
-    "1_material_ref"
-    "2_material_vac"
-    "3_material_vac"
-    "4_pure_absorption"
-    "5_high_scatter"
-    "6_reflective_boundaries"
-    "7_mixed_boundaries"
+#    "1_material_ref"
+#    "2_material_vac"
+#    "3_material_vac"
+#    "4_pure_absorption"
+#    "5_high_scatter"
+#    "6_reflective_boundaries"
+#    "7_mixed_boundaries"
     "8_void_penetration"
-    "9_dual_source"
-    "10_absorption_vs_scatter"
+#    "9_dual_source"
+#    "10_absorption_vs_scatter"
+#    "11_sandwich"
 )
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -40,7 +40,7 @@ def plot_scalar_flux(data_dict, output_dir=None):
     if output_dir:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
-        plt.savefig(output_dir / 'scalar_flux.png', dpi=300)
+        plt.savefig(output_dir / 'scalar_flux.png', dpi=600)
         print(f"Saved scalar flux plot to {output_dir / 'scalar_flux.png'}")
 
     plt.close()
@@ -75,7 +75,7 @@ def plot_current(data_dict, output_dir=None):
     if output_dir:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
-        plt.savefig(output_dir / 'current.png', dpi=300)
+        plt.savefig(output_dir / 'current.png', dpi=600)
         print(f"Saved current plot to {output_dir / 'current.png'}")
 
     plt.close()
@@ -130,7 +130,7 @@ def plot_angular_flux_selected_angles(data_dict, angle_indices=None, output_dir=
     if output_dir:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
-        plt.savefig(output_dir / 'angular_flux_selected.png', dpi=300)
+        plt.savefig(output_dir / 'angular_flux_selected.png', dpi=600)
         print(f"Saved selected angular flux plot to {output_dir / 'angular_flux_selected.png'}")
 
     plt.close()
@@ -168,7 +168,7 @@ def plot_angular_flux_heatmap(data, label="", output_dir=None):
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
         safe_label = label.replace(' ', '_').lower()
-        plt.savefig(output_dir / f'angular_flux_heatmap_{safe_label}.png', dpi=300)
+        plt.savefig(output_dir / f'angular_flux_heatmap_{safe_label}.png', dpi=600)
         print(f"Saved angular flux heatmap to {output_dir / f'angular_flux_heatmap_{safe_label}.png'}")
 
     plt.close()
@@ -235,7 +235,7 @@ def plot_all_angular_fluxes(data, label="", output_dir=None):
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
         safe_label = label.replace(' ', '_').lower()
-        plt.savefig(output_dir / f'all_angular_flux_{safe_label}.png', dpi=300)
+        plt.savefig(output_dir / f'all_angular_flux_{safe_label}.png', dpi=600)
         print(f"Saved all angular flux plot to {output_dir / f'all_angular_flux_{safe_label}.png'}")
 
     plt.close()
@@ -291,7 +291,7 @@ def plot_flux_difference(fortran_data, python_data, output_dir=None):
     if output_dir:
         output_dir = Path(output_dir)
         output_dir.mkdir(exist_ok=True)
-        plt.savefig(output_dir / 'solution_differences.png', dpi=300)
+        plt.savefig(output_dir / 'solution_differences.png', dpi=600)
         print(f"Saved difference plot to {output_dir / 'solution_differences.png'}")
 
     plt.close()
