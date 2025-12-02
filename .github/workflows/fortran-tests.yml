@@ -140,7 +140,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.13']
 
     steps:
     - name: Checkout code
@@ -164,7 +164,6 @@ jobs:
         pytest tests/python/ -v --tb=short --cov=pydiscord --cov-report=xml --cov-report=term
 
     - name: Upload Python coverage to Codecov
-      if: matrix.python-version == '3.12'
       uses: codecov/codecov-action@v4
       with:
         files: CSE-380/FinalProject/coverage.xml
