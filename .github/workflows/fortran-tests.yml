@@ -1,17 +1,19 @@
-name: Fortran Tests
+name: Tests
 
 on:
   push:
     branches: [ main, develop ]
     paths:
       - 'CSE-380/FinalProject/fdiscord/**'
-      - 'CSE-380/FinalProject/tests/fortran/**'
+      - 'CSE-380/FinalProject/pydiscord/**'
+      - 'CSE-380/FinalProject/tests/**'
       - '.github/workflows/fortran-tests.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'CSE-380/FinalProject/fdiscord/**'
-      - 'CSE-380/FinalProject/tests/fortran/**'
+      - 'CSE-380/FinalProject/pydiscord/**'
+      - 'CSE-380/FinalProject/tests/**'
       - '.github/workflows/fortran-tests.yml'
   workflow_dispatch:
 
@@ -133,3 +135,50 @@ jobs:
         echo "All Fortran unit tests completed." >> $GITHUB_STEP_SUMMARY
         echo "- **Compiler**: gfortran-${{ matrix.compiler }}" >> $GITHUB_STEP_SUMMARY
         echo "- **pFUnit Version**: ${{ matrix.pfunit-version }}" >> $GITHUB_STEP_SUMMARY
+
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      working-directory: CSE-380/FinalProject
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov numpy
+        pip install -e .
+
+    - name: Run Python tests with pytest
+      working-directory: CSE-380/FinalProject
+      run: |
+        pytest tests/python/ -v --tb=short --cov=pydiscord --cov-report=xml --cov-report=term
+
+    - name: Upload Python coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: CSE-380/FinalProject/coverage.xml
+        flags: python
+        name: python-coverage
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Python test summary
+      if: always()
+      run: |
+        echo "## Python Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Python tests completed." >> $GITHUB_STEP_SUMMARY
+        echo "- **Python Version**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY

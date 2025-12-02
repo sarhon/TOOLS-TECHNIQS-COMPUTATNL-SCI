@@ -24,7 +24,7 @@
     }
   ],
   "settings": {
-    "phiL_type": "vac",
+    "phiL_type": "ref",
     "phiR_type": "vac",
     "phiL": 0.0,
     "phiR": 0.0,
